@@ -7,7 +7,7 @@ const User  = require("./model/user.ts")
 
 require('dotenv').config();
 
-const app =express();
+const app = express();
 
 app.use(cors({
     origin: '*'
@@ -15,33 +15,30 @@ app.use(cors({
 
 app.use(express.json());
 
-
-app.post("/create_user",async (req,res)=>{
+app.post("/create_user",async (req:express.Request,res:express.Response)=>{
     try{
-        const isEmailAlreadyRegistered = await User.findOne({email:req.body.email})
-        if(!isEmailAlreadyRegistered){
-            const salt = await bcrypt.genSalt(10);
-            req.body.password = await bcrypt.hash(req.body.password,salt);
+        let isEmailTaken = await User.findOne({email:req.body.email})
+        if(isEmailTaken){
+            res.status(400)({ message: "Email already taken!" });
+        }else{
+            req.body.password = await bcrypt.hash(req.body.password,10);
             const myUser = new User(req.body)
             await myUser.save()
-            res.send(myUser)
-        }else{
-            res.status(400).json({ message: "Invalid password" });
         }
     }catch (err){
         res.send(err);
     }
 })
 
-app.post('/login',async (req, res) => {
+app.post('/login',async (req:express.Request,res:express.Response) => {
     const body = req.body;
     const user = await User.findOne({email: body.email});
     if(user){
-        const validPassword = await bcrypt.compare(body.password,user.password);
-        if(validPassword){
-            res.status(200).json({ message: "Valid password" });
+        if(await bcrypt.compare(body.password,user.password)){
+            res.send({loginStatus:true});
         }else{
-            res.status(400).json({ error: "Invalid Password" });
+            res.send({loginStatus:false});
+            res.status(400)({ error: "Invalid Password" });
         }
     }
 })
