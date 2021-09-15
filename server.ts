@@ -40,6 +40,8 @@ app.post('/login',async (req:express.Request,res:express.Response) => {
         }else{
             res.send({loginStatus:false});
         }
+    }else{
+        res.send({loginStatus:false});
     }
 })
 
