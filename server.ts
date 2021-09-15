@@ -20,10 +20,12 @@ app.post("/create_user",async (req:express.Request,res:express.Response)=>{
         let isEmailTaken = await User.findOne({email:req.body.email})
         if(isEmailTaken){
             res.status(400)({ message: "Email already taken!" });
+            res.send({registerStatus:false});
         }else{
             req.body.password = await bcrypt.hash(req.body.password,10);
             const myUser = new User(req.body)
             await myUser.save()
+            res.send({registerStatus:false});
         }
     }catch (err){
         res.send(err);
