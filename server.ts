@@ -19,7 +19,6 @@ app.post("/create_user",async (req:express.Request,res:express.Response)=>{
     try{
         let isEmailTaken = await User.findOne({email:req.body.email})
         if(isEmailTaken){
-            res.status(400)({ message: "Email already taken!" });
             res.send({registerStatus:false});
         }else{
             req.body.password = await bcrypt.hash(req.body.password,10);
@@ -40,7 +39,6 @@ app.post('/login',async (req:express.Request,res:express.Response) => {
             res.send({loginStatus:true});
         }else{
             res.send({loginStatus:false});
-            res.status(400)({ error: "Invalid Password" });
         }
     }
 })
