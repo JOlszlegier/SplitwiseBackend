@@ -2,12 +2,14 @@ import * as express from 'express';
 import * as mongoose from 'mongoose';
 import * as cors from 'cors'
 import * as bcrypt from 'bcrypt';
-
-const User  = require("./model/user.ts")
+import * as jwt from 'jsonwebtoken';
 
 require('dotenv').config();
 
+const User  = require("./model/user.ts");
 const app = express();
+const ACCESS_TOKEN_SECRET ='7b32dcf047c86f0c6aab76639f9c99f980877a6896f5e62a9d997f6d898ffa0f0a423ac9f6b12db31d89b6e51448107d93ff95ff76011f07bf274302c86b85b2'
+
 
 app.use(cors({
     origin: '*'
@@ -16,33 +18,50 @@ app.use(cors({
 app.use(express.json());
 
 app.post("/create_user",async (req:express.Request,res:express.Response)=>{
-    try{
-        let isEmailTaken = await User.findOne({email:req.body.email})
-        if(isEmailTaken){
-            res.send({registerStatus:false});
+    const body = req.body;
+    await User.findOne({email:body.email},async (error,user)=>{
+        if(error){
+            res.status(401).send(`error`);
         }else{
-            req.body.password = await bcrypt.hash(req.body.password,10);
-            const myUser = new User(req.body)
-            await myUser.save()
-            res.send({registerStatus:false});
+            if(user){
+                res.status(401).send(`Email already taken!`);
+            }else{
+                req.body.password = await bcrypt.hash(body.password,10);
+                const myUser = new User(body);
+                await myUser.save();
+                res.send(myUser);
+            }
         }
-    }catch (err){
-        res.send(err);
-    }
+    })
+    await User.findOne({email:body.email},async (error,user)=>{
+        if(error){
+            res.status(401).send(`user dont exist`);
+        }else{
+            const payload = { subject: user._id };
+            const token = jwt.sign(payload, ACCESS_TOKEN_SECRET);
+            res.status(200).send({token});
+        }
+    })
 })
 
 app.post('/login',async (req:express.Request,res:express.Response) => {
     const body = req.body;
-    const user = await User.findOne({email: body.email});
-    if(user){
-        if(await bcrypt.compare(body.password,user.password)){
-            res.send({loginStatus:true});
+
+    User.findOne({email:body.email},async (error,user)=>{
+        const passwordCorrect = await bcrypt.compare(body.password,user.password)
+        if(error){
+            res.status(401).send(`error`);
         }else{
-            res.send({loginStatus:false});
+            if(!user || !passwordCorrect){
+                res.status(401).send(`Incorrect password or wrong email`);
+            }else{
+                const payload = { subject: user._id };
+                const token = jwt.sign(payload, ACCESS_TOKEN_SECRET);
+                res.status(200).send({token});
+            }
         }
-    }else{
-        res.send({loginStatus:false});
-    }
+    })
+
 })
 
 mongoose.connect("mongodb+srv://first_user:admin@cluster0.qzot6.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"
@@ -53,3 +72,5 @@ mongoose.connect("mongodb+srv://first_user:admin@cluster0.qzot6.mongodb.net/myFi
 app.listen(3000,()=>{
     console.log(`Listening on 3000`);
 })
+
+
