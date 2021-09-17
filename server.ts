@@ -19,27 +19,20 @@ app.use(express.json());
 
 app.post("/create_user",async (req:express.Request,res:express.Response)=>{
     const body = req.body;
+    let registerSuccess = false;
     await User.findOne({email:body.email},async (error,user)=>{
         if(error){
-            res.status(401).send(`error`);
+            res.status(401).send(registerSuccess);
         }else{
             if(user){
-                res.status(401).send(`Email already taken!`);
+                res.status(401).send(registerSuccess).message(`email already taken!`);
             }else{
                 req.body.password = await bcrypt.hash(body.password,10);
                 const myUser = new User(body);
                 await myUser.save();
-                res.send(myUser);
+                registerSuccess = true;
+                res.send({myUser,registerSuccess});
             }
-        }
-    })
-    await User.findOne({email:body.email},async (error,user)=>{
-        if(error){
-            res.status(401).send(`user dont exist`);
-        }else{
-            const payload = { subject: user._id };
-            const token = jwt.sign(payload, ACCESS_TOKEN_SECRET);
-            res.status(200).send({token});
         }
     })
 })
@@ -50,14 +43,14 @@ app.post('/login',async (req:express.Request,res:express.Response) => {
     User.findOne({email:body.email},async (error,user)=>{
         const passwordCorrect = await bcrypt.compare(body.password,user.password)
         if(error){
-            res.status(401).send(`error`);
+            res.status(401).send(`Error`);
         }else{
             if(!user || !passwordCorrect){
-                res.status(401).send(`Incorrect password or wrong email`);
+                res.send(passwordCorrect);
             }else{
                 const payload = { subject: user._id };
                 const token = jwt.sign(payload, ACCESS_TOKEN_SECRET);
-                res.status(200).send({token});
+                res.status(200).send({token,passwordCorrect});
             }
         }
     })
