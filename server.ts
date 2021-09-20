@@ -54,28 +54,29 @@ app.post('/login',async (req:express.Request,res:express.Response) => {
             }
         }
     })
-
 })
 
 
-app.get('/add-group',verifyToken,(req,res)=>{
-    res.status(200).send({text:`Success`});
-});
 
-function verifyToken(req,res,next){
-    if(!req.headers.authorization){
-        return res.status(401).send(`No token`)
-    }
-    let token = req.headers.authorization.split(' ')[1];
-    if(token === 'null'){
-        return res.status(401).send(`Token empty`)
-    }
-    let payload = jwt.verify(token,ACCESS_TOKEN_SECRET);
-    if(!payload){
-        return res.status(401).send(`Tokens do not match!`)
-    }
-    next();
-}
+//Token verification ,might use in the future
+// app.get('/token-verification',verifyToken,(req,res)=>{
+//     res.status(200).send({tokenVerified:true});
+// })
+
+// function verifyToken(req,res,next){
+//     if(!req.headers.authorization){
+//         return res.status(401).send(`No token`)
+//     }
+//     let token = req.headers.authorization.split(' ')[1];
+//     if(token === 'null'){
+//         return res.status(401).send(`Token empty`)
+//     }
+//     let payload = jwt.verify(token,ACCESS_TOKEN_SECRET);
+//     if(!payload){
+//         return res.status(401).send(`Tokens do not match!`)
+//     }
+//     next();
+// }
 
 mongoose.connect("mongodb+srv://first_user:admin@cluster0.qzot6.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"
     ,()=>{
