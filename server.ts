@@ -39,7 +39,8 @@ app.post("/create_user",async (req:express.Request,res:express.Response)=>{
 
 app.post('/login',async (req:express.Request,res:express.Response) => {
     const body = req.body;
-
+    let currentDate = new Date();
+    currentDate.setHours(currentDate.getHours() + 1)
     User.findOne({email:body.email},async (error,user)=>{
         const passwordCorrect = await bcrypt.compare(body.password,user.password)
         if(error){
@@ -50,7 +51,8 @@ app.post('/login',async (req:express.Request,res:express.Response) => {
             }else{
                 const payload = { subject: user._id };
                 const token = jwt.sign(payload, ACCESS_TOKEN_SECRET);
-                res.status(200).send({token,passwordCorrect});
+                const expirationDate = currentDate.getTime().toString();
+                res.status(200).send({token,passwordCorrect,expirationDate});
             }
         }
     })
