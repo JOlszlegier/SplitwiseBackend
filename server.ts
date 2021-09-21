@@ -63,15 +63,25 @@ app.post('/login',async (req:express.Request,res:express.Response) => {
 app.post('/add-group',async (req:express.Request,res:express.Response) => {
     const body = req.body;
     let userID = [];
-    for(let i=0;i<body.usersEmails.length;i++){
-        User.findOne({email:body.usersEmails[i]},async (error,user)=> {
-            userID.push(user._id.toString());
-            console.log(`user o emailu ${body.usersEmails[i]} ma id ${user._id.toString()}`)
+    function usersSearch(usersEmail){
+        return new Promise (resolve=>{
+            User.findOne({email:usersEmail},async (error,user)=> {
+                resolve(user._id.toString())
+            })
         })
     }
-    const newGroup = new Group({name:body.name,usersEmails:userID});
-    await newGroup.save();
-    res.send({newGroup});
+    async function usersSort(usersBodyEmail){
+        for(const userEmail of usersBodyEmail){
+            const newElem = await usersSearch(userEmail);
+            userID.push(newElem)
+        }
+        const newGroup =  new Group({name:body.name,usersEmails:userID});
+        console.log(userID);
+        await newGroup.save();
+        res.send({newGroup});
+    }
+    await usersSort(body.usersEmails);
+
 })
 
 
