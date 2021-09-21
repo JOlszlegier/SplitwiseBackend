@@ -66,10 +66,9 @@ app.post('/add-group',async (req:express.Request,res:express.Response) => {
     for(let i=0;i<body.usersEmails.length;i++){
         User.findOne({email:body.usersEmails[i]},async (error,user)=> {
             userID.push(user._id.toString());
-            console.log(i);
+            console.log(`user o emailu ${body.usersEmails[i]} ma id ${user._id.toString()}`)
         })
     }
-    console.log(userID);
     const newGroup = new Group({name:body.name,usersEmails:userID});
     await newGroup.save();
     res.send({newGroup});
