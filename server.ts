@@ -7,6 +7,7 @@ import * as jwt from 'jsonwebtoken';
 require('dotenv').config();
 
 const User  = require("./model/user.ts");
+const Group = require("./model/group.ts");
 const app = express();
 const ACCESS_TOKEN_SECRET ='7b32dcf047c86f0c6aab76639f9c99f980877a6896f5e62a9d997f6d898ffa0f0a423ac9f6b12db31d89b6e51448107d93ff95ff76011f07bf274302c86b85b2'
 
@@ -59,6 +60,20 @@ app.post('/login',async (req:express.Request,res:express.Response) => {
     })
 })
 
+app.post('/add-group',async (req:express.Request,res:express.Response) => {
+    const body = req.body;
+    let userID = [];
+    for(let i=0;i<body.usersEmails.length;i++){
+        User.findOne({email:body.usersEmails[i]},async (error,user)=> {
+            userID.push(user._id.toString());
+            console.log(i);
+        })
+    }
+    console.log(userID);
+    const newGroup = new Group({name:body.name,usersEmails:userID});
+    await newGroup.save();
+    res.send({newGroup});
+})
 
 
 //Token verification ,might use in the future
