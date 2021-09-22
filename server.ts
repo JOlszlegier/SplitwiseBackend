@@ -51,13 +51,40 @@ app.post('/login',async (req:express.Request,res:express.Response) => {
                 res.send(passwordCorrect);
             }else{
                 const payload = { subject: user._id };
+                const userId = user._id;
                 const token = jwt.sign(payload, ACCESS_TOKEN_SECRET);
                 const expirationDate = currentDate.getTime().toString();
-                res.status(200).send({token,passwordCorrect,expirationDate});
+                res.status(200).send({token,passwordCorrect,expirationDate,userId});
             }
         }
 
     })
+})
+
+app.post('/group-users',(req:express.Request,res:express.Response)=>{
+    const body = req.body;
+    let usersNames = [];
+
+    function usersSearchById(userId){
+        return new Promise(resolve=>{
+            User.findOne({_id:userId},async (error,user)=>{
+                resolve(user.name);
+            })
+        })
+    }
+    async function usersInGroup(usersId){
+        for(const userId of usersId){
+            const newElem = await usersSearchById(userId);
+            usersNames.push(newElem);
+        }
+    }
+
+    Group.findOne({name:body.name},async(error,groups)=>{
+        const usersId = groups.usersEmails;
+        await usersInGroup(usersId);
+        res.send(usersNames);
+    })
+
 })
 
 app.post('/add-group',async (req:express.Request,res:express.Response) => {
@@ -76,12 +103,31 @@ app.post('/add-group',async (req:express.Request,res:express.Response) => {
             userID.push(newElem)
         }
         const newGroup =  new Group({name:body.name,usersEmails:userID});
-        console.log(userID);
         await newGroup.save();
         res.send({newGroup});
     }
     await usersSort(body.usersEmails);
 
+})
+
+app.post('/group-check',(req:express.Request,res:express.Response)=>{
+    const body = req.body;
+    Group.find({usersEmails:body.userId},async(error,groups)=>{
+        const groupsNames = groups.map((item:{name:any;})=>item.name)
+        res.send(groupsNames);
+    })
+});
+
+
+
+
+mongoose.connect("mongodb+srv://first_user:admin@cluster0.qzot6.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"
+    ,()=>{
+        console.log('Connected to database')
+    })
+
+app.listen(3000,()=>{
+    console.log(`Listening on 3000`);
 })
 
 
@@ -104,14 +150,3 @@ app.post('/add-group',async (req:express.Request,res:express.Response) => {
 //     }
 //     next();
 // }
-
-mongoose.connect("mongodb+srv://first_user:admin@cluster0.qzot6.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"
-    ,()=>{
-        console.log('Connected to database')
-    })
-
-app.listen(3000,()=>{
-    console.log(`Listening on 3000`);
-})
-
-
