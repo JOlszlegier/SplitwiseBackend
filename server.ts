@@ -98,6 +98,14 @@ function usersSearch(usersEmail){
     })
 }
 
+function userIdToName(userId){
+    return new Promise (resolve=>{
+        User.findOne({_id:userId},async (error,user)=> {
+            resolve(user.name.toString())
+        })
+    })
+}
+
 app.post('/add-group',async (req:express.Request,res:express.Response) => {
     const body = req.body;
     let userID = [];
@@ -138,19 +146,42 @@ app.post('/add-expense',async (req:express.Request,res:express.Response)=>{
         const newExpense = new Expense(body);
         await newExpense.save();
     }
-
-
     let userArray = [];
     for(const user of body.eachUserExpense){
         userArray.push(user.from)
     }
     await usersEmailsToId(userArray);
+
 })
 
 app.post('/add-friend',async (req:express.Request,res:express.Response)=>{
     const body = req.body;
-    const newFriend = new Friends(body);
-    await newFriend.save();
+    const userId = await usersSearch(body.user)
+    Friends.findOne({user:userId},async (error, user) => {
+        if (user) {
+            const friendId = await usersSearch(body.friends)
+            user.friends.push(friendId);
+            await user.save();
+            res.send(user);
+        } else {
+            const newFriend = new Friends(body);
+            newFriend.friends = await usersSearch(body.friends)
+            newFriend.user = userId;
+            await newFriend.save();
+            res.send(newFriend);
+        }
+    })
+})
+
+app.post('/friends-list',async (req:express.Request,res:express.Response)=>{
+    const body=req.body;
+    Friends.findOne({user:body.userId},async (error,user)=>{
+        if(user){
+            res.send(user.friends)
+        }else{
+            res.status(200);
+        }
+    })
 })
 
 mongoose.connect("mongodb+srv://newuser:admin@cluster0.hiiuc.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"
