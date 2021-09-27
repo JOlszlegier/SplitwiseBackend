@@ -156,32 +156,51 @@ app.post('/add-expense',async (req:express.Request,res:express.Response)=>{
 
 app.post('/add-friend',async (req:express.Request,res:express.Response)=>{
     const body = req.body;
-    const userId = await usersSearch(body.user)
-    Friends.findOne({user:userId},async (error, user) => {
+    const friendId = await usersSearch(body.friends);
+    const friendsList = [];
+    Friends.findOne({user:body.user},async (error, user) => {
         if (user) {
-            const friendId = await usersSearch(body.friends)
             user.friends.push(friendId);
             await user.save();
-            res.send(user);
+            await usersIdToNameSort(user.friends)
+            res.send({friends:friendsList});
         } else {
             const newFriend = new Friends(body);
             newFriend.friends = await usersSearch(body.friends)
-            newFriend.user = userId;
+            newFriend.user = body.user;
             await newFriend.save();
-            res.send(newFriend);
+            await usersIdToNameSort(newFriend.friends)
+            res.send({friends:friendsList});
         }
     })
+
+
+    async function usersIdToNameSort(usersId) {
+        for (const friend of usersId) {
+            const newElement = await userIdToName(friend)
+            friendsList.push(newElement);
+        }
+    }
 })
 
 app.post('/friends-list',async (req:express.Request,res:express.Response)=>{
     const body=req.body;
-    Friends.findOne({user:body.userId},async (error,user)=>{
+    let userNames = [];
+    Friends.findOne({user:body.user},async (error,user)=>{
         if(user){
-            res.send(user.friends)
+            await usersIdToNameSort(user.friends);
+            res.send({friends:userNames});
         }else{
             res.status(200);
         }
     })
+
+    async function usersIdToNameSort(usersId) {
+        for (const friend of usersId) {
+            const newElement = await userIdToName(friend)
+            userNames.push(newElement);
+        }
+    }
 })
 
 mongoose.connect("mongodb+srv://newuser:admin@cluster0.hiiuc.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"
