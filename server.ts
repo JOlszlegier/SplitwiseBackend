@@ -22,7 +22,7 @@ app.use(express.json());
 app.post("/create_user",async (req:express.Request,res:express.Response)=>{
     const body = req.body;
     let registerSuccess = false;
-    await User.findOne({email:body.email},async (error,user)=>{
+     User.findOne({email:body.email},async (error,user)=>{
         if(error){
             res.status(401).send(registerSuccess);
         }else{
@@ -44,18 +44,19 @@ app.post('/login',async (req:express.Request,res:express.Response) => {
     let currentDate = new Date();
     currentDate.setHours(currentDate.getHours() + 1)
     User.findOne({email:body.email},async (error,user)=>{
-        const passwordCorrect = await bcrypt.compare(body.password,user.password)
         if(error){
             res.status(401).send(`Error`);
         }else{
+            const passwordCorrect = await bcrypt.compare(body.password,user.password)
             if(!user || !passwordCorrect){
                 res.send(passwordCorrect);
             }else{
                 const payload = { subject: user._id };
                 const userId = user._id;
+                const userName = user.email;
                 const token = jwt.sign(payload, ACCESS_TOKEN_SECRET);
                 const expirationDate = currentDate.getTime().toString();
-                res.status(200).send({token,passwordCorrect,expirationDate,userId});
+                res.status(200).send({token,passwordCorrect,expirationDate,userId,userName});
             }
         }
 
@@ -88,16 +89,18 @@ app.post('/group-users',(req:express.Request,res:express.Response)=>{
 
 })
 
+function usersSearch(usersEmail){
+    return new Promise (resolve=>{
+        User.findOne({email:usersEmail},async (error,user)=> {
+            resolve(user._id.toString())
+        })
+    })
+}
+
 app.post('/add-group',async (req:express.Request,res:express.Response) => {
     const body = req.body;
     let userID = [];
-    function usersSearch(usersEmail){
-        return new Promise (resolve=>{
-            User.findOne({email:usersEmail},async (error,user)=> {
-                resolve(user._id.toString())
-            })
-        })
-    }
+
     async function usersSort(usersBodyEmail){
         for(const userEmail of usersBodyEmail){
             const newElem = await usersSearch(userEmail);
@@ -107,8 +110,8 @@ app.post('/add-group',async (req:express.Request,res:express.Response) => {
         await newGroup.save();
         res.send({newGroup});
     }
-    await usersSort(body.usersEmails);
 
+    await usersSort(body.usersEmails);
 })
 
 app.post('/group-check',(req:express.Request,res:express.Response)=>{
@@ -119,13 +122,26 @@ app.post('/group-check',(req:express.Request,res:express.Response)=>{
     })
 });
 
-app.post('/add-expense',(req:express.Request,res:express.Response)=>{
+app.post('/add-expense',async (req:express.Request,res:express.Response)=>{
     const body=req.body;
-    res.send(body);
+
+    let usersId = [];
+    async function usersEmailsToId(usersEmails){
+        for(const userEmail of usersEmails){
+            const newElement = await usersSearch(userEmail);
+            usersId.push(newElement)
+        }
+        body.from = usersId;
+        const newExpense = new Expense(body);
+        await newExpense.save();
+    }
+
+    await usersEmailsToId(body.from);
+
 })
 
 
-mongoose.connect("mongodb+srv://first_user:admin@cluster0.qzot6.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"
+mongoose.connect("mongodb+srv://newuser:admin@cluster0.hiiuc.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"
     ,()=>{
         console.log('Connected to database')
     })
@@ -133,6 +149,8 @@ mongoose.connect("mongodb+srv://first_user:admin@cluster0.qzot6.mongodb.net/myFi
 app.listen(3000,()=>{
     console.log(`Listening on 3000`);
 })
+
+
 
 
 //Token verification ,might use in the future

@@ -1,11 +1,10 @@
 import * as mongoose from 'mongoose';
 
 const Expense = new mongoose.Schema({
-    from:String,
-    to:[String],
-    amount:Number,
+    from:[String],
+    to:String,
+    amount:[Number],
     currencyMultiplier:Number,
-    groupId:String,
     description:String
 })
 
