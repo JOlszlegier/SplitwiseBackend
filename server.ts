@@ -7,6 +7,9 @@ import * as jwt from 'jsonwebtoken';
 require('dotenv').config();
 
 const User  = require("./model/user.ts");
+const Group = require("./model/group.ts");
+const Expense = require("./model/expense");
+const Friends = require("./model/friends");
 const app = express();
 const ACCESS_TOKEN_SECRET ='7b32dcf047c86f0c6aab76639f9c99f980877a6896f5e62a9d997f6d898ffa0f0a423ac9f6b12db31d89b6e51448107d93ff95ff76011f07bf274302c86b85b2'
 
@@ -20,7 +23,7 @@ app.use(express.json());
 app.post("/create_user",async (req:express.Request,res:express.Response)=>{
     const body = req.body;
     let registerSuccess = false;
-    await User.findOne({email:body.email},async (error,user)=>{
+     User.findOne({email:body.email},async (error,user)=>{
         if(error){
             res.status(401).send(registerSuccess);
         }else{
@@ -42,22 +45,154 @@ app.post('/login',async (req:express.Request,res:express.Response) => {
     let currentDate = new Date();
     currentDate.setHours(currentDate.getHours() + 1)
     User.findOne({email:body.email},async (error,user)=>{
-        const passwordCorrect = await bcrypt.compare(body.password,user.password)
         if(error){
             res.status(401).send(`Error`);
         }else{
+            const passwordCorrect = await bcrypt.compare(body.password,user.password)
             if(!user || !passwordCorrect){
                 res.send(passwordCorrect);
             }else{
                 const payload = { subject: user._id };
+                const userId = user._id;
+                const userName = user.email;
                 const token = jwt.sign(payload, ACCESS_TOKEN_SECRET);
                 const expirationDate = currentDate.getTime().toString();
-                res.status(200).send({token,passwordCorrect,expirationDate});
+                res.status(200).send({token,passwordCorrect,expirationDate,userId,userName});
             }
         }
 
     })
 })
+
+app.post('/group-users',(req:express.Request,res:express.Response)=>{
+    const body = req.body;
+    let usersNames = [];
+
+    function usersSearchById(userId){
+        return new Promise(resolve=>{
+            User.findOne({_id:userId},async (error,user)=>{
+                resolve(user.name);
+            })
+        })
+    }
+    async function usersInGroup(usersId){
+        for(const userId of usersId){
+            const newElem = await usersSearchById(userId);
+            usersNames.push(newElem);
+        }
+    }
+
+    Group.findOne({name:body.name},async(error,groups)=>{
+        const usersId = groups.usersEmails;
+        await usersInGroup(usersId);
+        res.send(usersNames);
+    })
+
+})
+
+function usersSearch(usersEmail){
+    return new Promise (resolve=>{
+        User.findOne({email:usersEmail},async (error,user)=> {
+            resolve(user._id.toString())
+        })
+    })
+}
+
+function userIdToName(userId){
+    return new Promise (resolve=>{
+        User.findOne({_id:userId},async (error,user)=> {
+            resolve(user.name.toString())
+        })
+    })
+}
+
+app.post('/add-group',async (req:express.Request,res:express.Response) => {
+    const body = req.body;
+    let userID = [];
+
+    async function usersSort(usersBodyEmail){
+        for(const userEmail of usersBodyEmail){
+            const newElem = await usersSearch(userEmail);
+            userID.push(newElem)
+        }
+        const newGroup =  new Group({name:body.name,usersEmails:userID});
+        await newGroup.save();
+        res.send({newGroup});
+    }
+
+    await usersSort(body.usersEmails);
+})
+
+app.post('/group-check',(req:express.Request,res:express.Response)=>{
+    const body = req.body;
+    Group.find({usersEmails:body.userId},async(error,groups)=>{
+        const groupsNames = groups.map((item:{name:any;})=>item.name)
+        res.send(groupsNames);
+    })
+});
+
+app.post('/add-expense',async (req:express.Request,res:express.Response)=>{
+    const body=req.body;
+    let usersId = [];
+    async function usersEmailsToId(usersEmails){
+        for(const userEmail of usersEmails){
+            const newElement = await usersSearch(userEmail)
+            usersId.push(newElement);
+        }
+        for(const user in usersId){
+            body.eachUserExpense[user].from = usersId[user];
+        }
+        body.to = await usersSearch(body.to);
+        const newExpense = new Expense(body);
+        await newExpense.save();
+    }
+    let userArray = [];
+    for(const user of body.eachUserExpense){
+        userArray.push(user.from)
+    }
+    await usersEmailsToId(userArray);
+
+})
+
+app.post('/add-friend',async (req:express.Request,res:express.Response)=>{
+    const body = req.body;
+    const userId = await usersSearch(body.user)
+    Friends.findOne({user:userId},async (error, user) => {
+        if (user) {
+            const friendId = await usersSearch(body.friends)
+            user.friends.push(friendId);
+            await user.save();
+            res.send(user);
+        } else {
+            const newFriend = new Friends(body);
+            newFriend.friends = await usersSearch(body.friends)
+            newFriend.user = userId;
+            await newFriend.save();
+            res.send(newFriend);
+        }
+    })
+})
+
+app.post('/friends-list',async (req:express.Request,res:express.Response)=>{
+    const body=req.body;
+    Friends.findOne({user:body.userId},async (error,user)=>{
+        if(user){
+            res.send(user.friends)
+        }else{
+            res.status(200);
+        }
+    })
+})
+
+mongoose.connect("mongodb+srv://newuser:admin@cluster0.hiiuc.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"
+    ,()=>{
+        console.log('Connected to database')
+    })
+
+app.listen(3000,()=>{
+    console.log(`Listening on 3000`);
+})
+
 
 
 
@@ -80,14 +215,3 @@ app.post('/login',async (req:express.Request,res:express.Response) => {
 //     }
 //     next();
 // }
-
-mongoose.connect("mongodb+srv://first_user:admin@cluster0.qzot6.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"
-    ,()=>{
-        console.log('Connected to database')
-    })
-
-app.listen(3000,()=>{
-    console.log(`Listening on 3000`);
-})
-
-
