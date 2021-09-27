@@ -9,6 +9,7 @@ require('dotenv').config();
 const User  = require("./model/user.ts");
 const Group = require("./model/group.ts");
 const Expense = require("./model/expense");
+const Friends = require("./model/friends");
 const app = express();
 const ACCESS_TOKEN_SECRET ='7b32dcf047c86f0c6aab76639f9c99f980877a6896f5e62a9d997f6d898ffa0f0a423ac9f6b12db31d89b6e51448107d93ff95ff76011f07bf274302c86b85b2'
 
@@ -124,22 +125,33 @@ app.post('/group-check',(req:express.Request,res:express.Response)=>{
 
 app.post('/add-expense',async (req:express.Request,res:express.Response)=>{
     const body=req.body;
-
     let usersId = [];
     async function usersEmailsToId(usersEmails){
         for(const userEmail of usersEmails){
-            const newElement = await usersSearch(userEmail);
-            usersId.push(newElement)
+            const newElement = await usersSearch(userEmail)
+            usersId.push(newElement);
         }
-        body.from = usersId;
+        for(const user in usersId){
+            body.eachUserExpense[user].from = usersId[user];
+        }
+        body.to = await usersSearch(body.to);
         const newExpense = new Expense(body);
         await newExpense.save();
     }
 
-    await usersEmailsToId(body.from);
 
+    let userArray = [];
+    for(const user of body.eachUserExpense){
+        userArray.push(user.from)
+    }
+    await usersEmailsToId(userArray);
 })
 
+app.post('/add-friend',async (req:express.Request,res:express.Response)=>{
+    const body = req.body;
+    const newFriend = new Friends(body);
+    await newFriend.save();
+})
 
 mongoose.connect("mongodb+srv://newuser:admin@cluster0.hiiuc.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"
     ,()=>{
