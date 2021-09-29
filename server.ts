@@ -20,25 +20,24 @@ app.use(cors({
 
 app.use(express.json());
 
-app.post("/create_user",async (req:express.Request,res:express.Response)=>{
+app.post("/create-user",async (req:express.Request,res:express.Response)=>{
     const body = req.body;
     let registerSuccess = false;
      User.findOne({email:body.email},async (error,user)=>{
-        if(error){
-            res.status(401).send(registerSuccess);
-        }else{
             if(user){
                 res.status(401).send(registerSuccess).message(`email already taken!`);
             }else{
                 req.body.password = await bcrypt.hash(body.password,10);
                 const myUser = new User(body);
+                myUser.outcome= 0;
+                myUser.income = 0;
                 await myUser.save();
                 registerSuccess = true;
                 res.send({myUser,registerSuccess});
             }
-        }
+        })
     })
-})
+
 
 app.post('/login',async (req:express.Request,res:express.Response) => {
     const body = req.body;
@@ -138,6 +137,7 @@ app.post('/group-check',(req:express.Request,res:express.Response)=>{
 app.post('/add-expense',async (req:express.Request,res:express.Response)=>{
     const body=req.body;
     let usersId = [];
+    let totalAmount = 0;
     async function usersEmailsToId(usersEmails){
         for(const userEmail of usersEmails){
             const newElement = await usersSearch(userEmail)
@@ -145,8 +145,11 @@ app.post('/add-expense',async (req:express.Request,res:express.Response)=>{
         }
         for(const user in usersId){
             body.eachUserExpense[user].from = usersId[user];
+            await updateBalanceMinus(body.eachUserExpense[user].from,body.eachUserExpense[user].value)
+            totalAmount=totalAmount+body.eachUserExpense[user].value;
         }
         body.to = await usersSearch(body.to);
+        await updateBalancePlus(body.to,totalAmount);
         const newExpense = new Expense(body);
         await newExpense.save();
     }
@@ -158,6 +161,44 @@ app.post('/add-expense',async (req:express.Request,res:express.Response)=>{
 
 })
 
+function updateBalancePlus(userId:string,amount:number){
+    return new Promise(resolve=>{
+        User.findOne({_id:userId},(error,user)=>{
+            if(user.income!=0){
+                user.income=user.income+amount;
+            }else{
+                user.income=amount
+            }
+            resolve(user.save());
+        })
+    })
+}
+
+function  updateBalanceMinus(userId:string,amount:number){
+    return new Promise(resolve=>{
+        User.findOne({_id:userId},(error,user)=>{
+            if(user.outcome!=0){
+                user.outcome=user.outcome+amount;
+            }else{
+                user.outcome=amount
+            }
+            resolve(user.save());
+        })
+    })
+}
+
+
+app.post('/balance-check',async (req:express.Request,res:express.Response)=>{
+    const body =req.body;
+    User.findOne({_id:body.userId},(error,user)=>{
+        res.send({income:user.income,outcome:user.outcome})
+    })
+})
+
+
+
+
+
 app.post('/add-friend',async (req:express.Request,res:express.Response)=>{
     const body = req.body;
     const friendId = await usersSearch(body.friends);
@@ -167,10 +208,12 @@ app.post('/add-friend',async (req:express.Request,res:express.Response)=>{
                 if(friendId === body.user){
                     if(user.friends){
                         await usersIdToNameSort(user.friends)
-                        res.send({errorMessage:`Sadly,you can't be a friend with yourself :(`,friends:friendsList})
+                        res.send({errorMessage:`Sadly,you can't be a friend with yourself :(`,
+                            friends:friendsList})
                     }else{
                         await usersIdToNameSort(body.friends)
-                        res.send({errorMessage:`Sadly,you can't be a friend with yourself :(`,friends:friendsList})
+                        res.send({errorMessage:`Sadly,you can't be a friend with yourself :(`,
+                            friends:friendsList})
                     }
 
                 }else{
@@ -199,10 +242,6 @@ app.post('/add-friend',async (req:express.Request,res:express.Response)=>{
                 res.send({friends:friendsList,errorMessage:`This user does not exist!`})
             }
         })
-
-
-
-
 
 
     async function usersIdToNameSort(usersId) {
