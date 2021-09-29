@@ -162,26 +162,47 @@ app.post('/add-friend',async (req:express.Request,res:express.Response)=>{
     const body = req.body;
     const friendId = await usersSearch(body.friends);
     const friendsList = [];
-    Friends.findOne({user:body.user},async (error, user) => {
-        if (user) {
-            if(user.friends.includes(friendId)){
-                await usersIdToNameSort(user.friends)
-                res.send({userAlreadyOnTheList:true,friends:friendsList});
-            }else{
-                user.friends.push(friendId);
-                await user.save();
-                await usersIdToNameSort(user.friends)
-                res.send({friends:friendsList,userAlreadyOnTheList:false});
+        Friends.findOne({user:body.user},async (error, user) => {
+            if(friendId!=0){
+                if(friendId === body.user){
+                    if(user.friends){
+                        await usersIdToNameSort(user.friends)
+                        res.send({errorMessage:`Sadly,you can't be a friend with yourself :(`,friends:friendsList})
+                    }else{
+                        await usersIdToNameSort(body.friends)
+                        res.send({errorMessage:`Sadly,you can't be a friend with yourself :(`,friends:friendsList})
+                    }
+
+                }else{
+                    if (user) {
+                        if(user.friends.includes(friendId)){
+                            await usersIdToNameSort(user.friends)
+                            res.send({userAlreadyOnTheList:true,friends:friendsList});
+                        }else{
+                            user.friends.push(friendId);
+                            await user.save();
+                            await usersIdToNameSort(user.friends)
+                            res.send({friends:friendsList});
+                        }
+                    } else {
+                        const newFriend = new Friends(body);
+                        newFriend.friends = await usersSearch(body.friends)
+                        newFriend.user = body.user;
+                        await newFriend.save();
+                        await usersIdToNameSort(newFriend.friends)
+                        res.send({friends:friendsList});
+                    }
+                }
             }
-        } else {
-            const newFriend = new Friends(body);
-            newFriend.friends = await usersSearch(body.friends)
-            newFriend.user = body.user;
-            await newFriend.save();
-            await usersIdToNameSort(newFriend.friends)
-            res.send({friends:friendsList});
-        }
-    })
+            else{
+                await usersIdToNameSort(user.friends);
+                res.send({friends:friendsList,errorMessage:`This user does not exist!`})
+            }
+        })
+
+
+
+
 
 
     async function usersIdToNameSort(usersId) {
