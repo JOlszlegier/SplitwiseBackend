@@ -93,7 +93,11 @@ app.post('/group-users',(req:express.Request,res:express.Response)=>{
 function usersSearch(usersEmail){
     return new Promise (resolve=>{
         User.findOne({email:usersEmail},async (error,user)=> {
-            resolve(user._id.toString())
+            if(user){
+                resolve(user._id.toString())
+            }else{
+                resolve(0);
+            }
         })
     })
 }
@@ -156,30 +160,88 @@ app.post('/add-expense',async (req:express.Request,res:express.Response)=>{
 
 app.post('/add-friend',async (req:express.Request,res:express.Response)=>{
     const body = req.body;
-    const userId = await usersSearch(body.user)
-    Friends.findOne({user:userId},async (error, user) => {
-        if (user) {
-            const friendId = await usersSearch(body.friends)
-            user.friends.push(friendId);
-            await user.save();
-            res.send(user);
-        } else {
-            const newFriend = new Friends(body);
-            newFriend.friends = await usersSearch(body.friends)
-            newFriend.user = userId;
-            await newFriend.save();
-            res.send(newFriend);
+    const friendId = await usersSearch(body.friends);
+    const friendsList = [];
+        Friends.findOne({user:body.user},async (error, user) => {
+            if(friendId!=0){
+                if(friendId === body.user){
+                    if(user.friends){
+                        await usersIdToNameSort(user.friends)
+                        res.send({errorMessage:`Sadly,you can't be a friend with yourself :(`,friends:friendsList})
+                    }else{
+                        await usersIdToNameSort(body.friends)
+                        res.send({errorMessage:`Sadly,you can't be a friend with yourself :(`,friends:friendsList})
+                    }
+
+                }else{
+                    if (user) {
+                        if(user.friends.includes(friendId)){
+                            await usersIdToNameSort(user.friends)
+                            res.send({userAlreadyOnTheList:true,friends:friendsList});
+                        }else{
+                            user.friends.push(friendId);
+                            await user.save();
+                            await usersIdToNameSort(user.friends)
+                            res.send({friends:friendsList});
+                        }
+                    } else {
+                        const newFriend = new Friends(body);
+                        newFriend.friends = await usersSearch(body.friends)
+                        newFriend.user = body.user;
+                        await newFriend.save();
+                        await usersIdToNameSort(newFriend.friends)
+                        res.send({friends:friendsList});
+                    }
+                }
+            }
+            else{
+                await usersIdToNameSort(user.friends);
+                res.send({friends:friendsList,errorMessage:`This user does not exist!`})
+            }
+        })
+
+
+
+
+
+
+    async function usersIdToNameSort(usersId) {
+        for (const friend of usersId) {
+            const newElement = await userIdToName(friend)
+            friendsList.push(newElement);
         }
-    })
+    }
 })
 
 app.post('/friends-list',async (req:express.Request,res:express.Response)=>{
     const body=req.body;
-    Friends.findOne({user:body.userId},async (error,user)=>{
+    let userNames = [];
+    Friends.findOne({user:body.user},async (error,user)=>{
         if(user){
-            res.send(user.friends)
+            await usersIdToNameSort(user.friends);
+            res.send({friends:userNames});
         }else{
             res.status(200);
+        }
+    })
+
+    async function usersIdToNameSort(usersId) {
+        for (const friend of usersId) {
+            const newElement = await userIdToName(friend)
+            userNames.push(newElement);
+        }
+    }
+})
+
+app.post('/friend-check',async (req:express.Request,res:express.Response)=> {
+    const body=req.body;
+    const friendId = await usersSearch(body.friends);
+    Friends.findOne({user:body.user},async (error,user)=>{
+        if(user.friends.includes(friendId)){
+            res.send({correctUser:true})
+        }else
+        {
+            res.send({correctUser:false})
         }
     })
 })
