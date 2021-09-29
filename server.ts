@@ -93,7 +93,11 @@ app.post('/group-users',(req:express.Request,res:express.Response)=>{
 function usersSearch(usersEmail){
     return new Promise (resolve=>{
         User.findOne({email:usersEmail},async (error,user)=> {
-            resolve(user._id.toString())
+            if(user){
+                resolve(user._id.toString())
+            }else{
+                resolve(0);
+            }
         })
     })
 }
@@ -167,7 +171,7 @@ app.post('/add-friend',async (req:express.Request,res:express.Response)=>{
                 user.friends.push(friendId);
                 await user.save();
                 await usersIdToNameSort(user.friends)
-                res.send({friends:friendsList});
+                res.send({friends:friendsList,userAlreadyOnTheList:false});
             }
         } else {
             const newFriend = new Friends(body);
@@ -206,6 +210,19 @@ app.post('/friends-list',async (req:express.Request,res:express.Response)=>{
             userNames.push(newElement);
         }
     }
+})
+
+app.post('/friend-check',async (req:express.Request,res:express.Response)=> {
+    const body=req.body;
+    const friendId = await usersSearch(body.friends);
+    Friends.findOne({user:body.user},async (error,user)=>{
+        if(user.friends.includes(friendId)){
+            res.send({correctUser:true})
+        }else
+        {
+            res.send({correctUser:false})
+        }
+    })
 })
 
 mongoose.connect("mongodb+srv://newuser:admin@cluster0.hiiuc.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"
