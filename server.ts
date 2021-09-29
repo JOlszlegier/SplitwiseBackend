@@ -160,10 +160,15 @@ app.post('/add-friend',async (req:express.Request,res:express.Response)=>{
     const friendsList = [];
     Friends.findOne({user:body.user},async (error, user) => {
         if (user) {
-            user.friends.push(friendId);
-            await user.save();
-            await usersIdToNameSort(user.friends)
-            res.send({friends:friendsList});
+            if(user.friends.includes(friendId)){
+                await usersIdToNameSort(user.friends)
+                res.send({userAlreadyOnTheList:true,friends:friendsList});
+            }else{
+                user.friends.push(friendId);
+                await user.save();
+                await usersIdToNameSort(user.friends)
+                res.send({friends:friendsList});
+            }
         } else {
             const newFriend = new Friends(body);
             newFriend.friends = await usersSearch(body.friends)
