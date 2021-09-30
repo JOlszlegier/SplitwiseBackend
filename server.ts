@@ -285,6 +285,23 @@ app.post('/friend-check',async (req:express.Request,res:express.Response)=> {
     })
 })
 
+app.post('/settle-up',async (req:express.Request,res:express.Response)=> {
+    const body=req.body;
+    let thisUserOwes=[]
+    Expense.find({'eachUserExpense.from':body.userId},(error,expenses)=>{
+        for(const expense in expenses){
+            for(const user in expenses[expense].eachUserExpense){
+                if(expenses[expense].eachUserExpense[user].from===body.userId){
+                    thisUserOwes.push({to:expenses[expense].to,
+                        value:expenses[expense].eachUserExpense[user].value,
+                        expenseId:expenses[expense].eachUserExpense[user]._id})
+                }
+            }
+        }
+        res.send(thisUserOwes);
+    })
+})
+
 mongoose.connect("mongodb+srv://newuser:admin@cluster0.hiiuc.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"
     ,()=>{
         console.log('Connected to database')
