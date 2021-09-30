@@ -285,20 +285,42 @@ app.post('/friend-check',async (req:express.Request,res:express.Response)=> {
     })
 })
 
-app.post('/settle-up',async (req:express.Request,res:express.Response)=> {
+app.post('/settle-up-info',async (req:express.Request,res:express.Response)=> {
     const body=req.body;
     let thisUserOwes=[]
-    Expense.find({'eachUserExpense.from':body.userId},(error,expenses)=>{
-        for(const expense in expenses){
-            for(const user in expenses[expense].eachUserExpense){
-                if(expenses[expense].eachUserExpense[user].from===body.userId){
-                    thisUserOwes.push({to:expenses[expense].to,
-                        value:expenses[expense].eachUserExpense[user].value,
-                        expenseId:expenses[expense].eachUserExpense[user]._id})
+    let finalResponseArray = [];
+    let insideExpensesId = []
+    let userNames = [];
+    let holder= {};
+    Expense.find({'eachUserExpense.from':body.userId},async (error, expenses) => {
+        for (const expense in expenses) {
+            for (const user in expenses[expense].eachUserExpense) {
+                if (expenses[expense].eachUserExpense[user].from === body.userId) {
+                    thisUserOwes.push({
+                        to: expenses[expense].to,
+                        value: expenses[expense].eachUserExpense[user].value,
+                        userName:''
+                    })
+                    insideExpensesId.push(expenses[expense].eachUserExpense[user]._id)
                 }
             }
         }
-        res.send(thisUserOwes);
+        thisUserOwes.forEach((d) => {
+            if (holder.hasOwnProperty(d.to)) {
+                holder[d.to] = holder[d.to] + d.value
+            } else {
+                holder[d.to] = d.value
+            }
+        })
+        for (let prop in holder) {
+            finalResponseArray.push({to: prop, value: holder[prop]})
+        }
+        for (const user in finalResponseArray) {
+            const newElem =await userIdToName(finalResponseArray[user].to)
+            userNames.push(newElem);
+        }
+
+        res.send({valueOwedToUser: finalResponseArray, expensesId: insideExpensesId,userNames:userNames});
     })
 })
 
