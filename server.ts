@@ -151,6 +151,7 @@ app.post('/add-expense',async (req:express.Request,res:express.Response)=>{
         body.to = await usersSearch(body.to);
         await updateBalancePlus(body.to,totalAmount);
         const newExpense = new Expense(body);
+        res.send({expenseAdded:true})
         await newExpense.save();
     }
     let userArray = [];
@@ -327,7 +328,6 @@ app.post('/settle-up-info',async (req:express.Request,res:express.Response)=> {
 app.post('/settle-up',async (req:express.Request,res:express.Response)=>{
     const body = req.body;
     const expensesToDeleteId = [];
-    let amountYouPaid = 0;
     Expense.find({'eachUserExpense.from':body.userId},async (error, expenses) => {
             for (const expense in expenses) {
                 for (const user in expenses[expense].eachUserExpense) {
@@ -352,13 +352,11 @@ app.post('/settle-up',async (req:express.Request,res:express.Response)=>{
     })
     for(const userIndex in body.valueOwedToUser){
         User.findOne({_id:body.valueOwedToUser[userIndex].to},async (error, user) => {
-            console.log()
             user.income = user.income - body.valueOwedToUser[userIndex].value;
-            amountYouPaid = amountYouPaid+body.valueOwedToUser[userIndex].value
             await user.save();
+            res.send({settleUpFinished:true});
         })
     }
-    res.send({amountYouPaid:amountYouPaid});
 })
 
 
