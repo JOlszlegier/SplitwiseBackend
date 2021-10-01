@@ -324,6 +324,46 @@ app.post('/settle-up-info',async (req:express.Request,res:express.Response)=> {
     })
 })
 
+app.post('/settle-up',async (req:express.Request,res:express.Response)=>{
+    const body = req.body;
+    const expensesToDeleteId = [];
+    let amountYouPaid = 0;
+    Expense.find({'eachUserExpense.from':body.userId},async (error, expenses) => {
+            for (const expense in expenses) {
+                for (const user in expenses[expense].eachUserExpense) {
+                    if (expenses[expense].eachUserExpense[user].from === body.userId) {
+                        expenses[expense].eachUserExpense.splice(Number(user), 1);
+                        if (expenses[expense].eachUserExpense.length === 0) {
+                            expensesToDeleteId.push(expenses[expense]._id.toString())
+                        } else {
+                            await expenses[expense].save();
+                        }
+                    }
+                }
+            }
+            for (const expense of expensesToDeleteId) {
+                await Expense.findOneAndDelete({_id: expense});
+            }
+        }
+    )
+    User.findOne({_id:body.userId},async (error, user) => {
+        user.outcome = 0;
+        await user.save();
+    })
+    for(const userIndex in body.valueOwedToUser){
+        User.findOne({_id:body.valueOwedToUser[userIndex].to},async (error, user) => {
+            console.log()
+            user.income = user.income - body.valueOwedToUser[userIndex].value;
+            amountYouPaid = amountYouPaid+body.valueOwedToUser[userIndex].value
+            await user.save();
+        })
+    }
+    res.send({amountYouPaid:amountYouPaid});
+})
+
+
+
+
 mongoose.connect("mongodb+srv://newuser:admin@cluster0.hiiuc.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"
     ,()=>{
         console.log('Connected to database')
