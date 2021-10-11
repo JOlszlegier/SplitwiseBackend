@@ -359,7 +359,38 @@ app.post('/settle-up',async (req:express.Request,res:express.Response)=>{
     }
 })
 
+app.post('/expenses-info-to-user',async (req:express.Request,res:express.Response)=>{
+    const body= req.body;
+    const expensesUserIsOwed:[{description:String,amount:number}] = [{description:'',amount:0}];
+    Expense.find({to:body.userId},async(error,expenses)=>{
+        for(let expense in expenses){
+            let description = expenses[expense].description;
+            let amount = 0;
+            for(let user in expenses[expense].eachUserExpense){
+                amount= amount + expenses[expense].eachUserExpense[user].value;
+            }
+            expensesUserIsOwed.push({description,amount});
+        }
+        expensesUserIsOwed.splice(0,1);
+        res.send({expensesArray:expensesUserIsOwed});
+    })
+})
 
+app.post('/expenses-info-from-user',async (req:express.Request,res:express.Response)=>{
+    const body= req.body;
+    const expensesUserIsOwing:[{description:String,amount:number}] = [{description:'',amount:0}];
+    Expense.find({'eachUserExpense.from':body.userId},async(error,expenses)=>{
+        for (const expense in expenses) {
+            for (const user in expenses[expense].eachUserExpense) {
+                if (expenses[expense].eachUserExpense[user].from === body.userId) {
+                    expensesUserIsOwing.push({description:expenses[expense].description,amount:expenses[expense].eachUserExpense[user].value})
+                }
+            }
+        }
+        expensesUserIsOwing.splice(0,1);
+        res.send({expensesArray:expensesUserIsOwing});
+    })
+})
 
 
 mongoose.connect("mongodb+srv://newuser:admin@cluster0.hiiuc.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"
