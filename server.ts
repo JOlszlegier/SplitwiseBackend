@@ -138,6 +138,11 @@ app.post('/add-expense',async (req:express.Request,res:express.Response)=>{
     const body=req.body;
     let usersId = [];
     let totalAmount = 0;
+    let currentDate = new Date();
+    currentDate.setHours(currentDate.getHours() + 2)
+    if(body.groupName === 'Dashboard' || body.groupName === 'Recent Activities' || body.groupName === 'All Expenses'){
+        body.groupName = '';
+    }
     async function usersEmailsToId(usersEmails){
         for(const userEmail of usersEmails){
             const newElement = await usersSearch(userEmail)
@@ -151,6 +156,7 @@ app.post('/add-expense',async (req:express.Request,res:express.Response)=>{
         body.to = await usersSearch(body.to);
         await updateBalancePlus(body.to,totalAmount);
         const newExpense = new Expense(body);
+        newExpense.date = currentDate.getTime().toString();
         res.send({expenseAdded:true})
         await newExpense.save();
     }
