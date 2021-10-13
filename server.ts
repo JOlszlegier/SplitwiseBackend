@@ -194,17 +194,12 @@ function  updateBalanceMinus(userId:string,amount:number){
     })
 }
 
-
 app.post('/balance-check',async (req:express.Request,res:express.Response)=>{
     const body =req.body;
     User.findOne({_id:body.userId},(error,user)=>{
         res.send({income:user.income,outcome:user.outcome})
     })
 })
-
-
-
-
 
 app.post('/add-friend',async (req:express.Request,res:express.Response)=>{
     const body = req.body;
@@ -299,70 +294,142 @@ app.post('/settle-up-info',async (req:express.Request,res:express.Response)=> {
     let insideExpensesId = []
     let userNames = [];
     let holder= {};
-    Expense.find({'eachUserExpense.from':body.userId},async (error, expenses) => {
-        for (const expense in expenses) {
-            for (const user in expenses[expense].eachUserExpense) {
-                if (expenses[expense].eachUserExpense[user].from === body.userId) {
-                    thisUserOwes.push({
-                        to: expenses[expense].to,
-                        value: expenses[expense].eachUserExpense[user].value,
-                        userName:''
-                    })
-                    insideExpensesId.push(expenses[expense].eachUserExpense[user]._id)
+    if(body.groupName === 'Dashboard' || body.groupName === 'All Expenses' || body.groupName === 'Recent Activities'){
+        Expense.find({'eachUserExpense.from':body.userId},async (error, expenses) => {
+            for (const expense in expenses) {
+                for (const user in expenses[expense].eachUserExpense) {
+                    if (expenses[expense].eachUserExpense[user].from === body.userId) {
+                        thisUserOwes.push({
+                            to: expenses[expense].to,
+                            value: expenses[expense].eachUserExpense[user].value,
+                            userName:''
+                        })
+                        insideExpensesId.push(expenses[expense].eachUserExpense[user]._id);
+                    }
                 }
             }
-        }
-        thisUserOwes.forEach((d) => {
-            if (holder.hasOwnProperty(d.to)) {
-                holder[d.to] = holder[d.to] + d.value
-            } else {
-                holder[d.to] = d.value
+            thisUserOwes.forEach((d) => {
+                if (holder.hasOwnProperty(d.to)) {
+                    holder[d.to] = holder[d.to] + d.value
+                } else {
+                    holder[d.to] = d.value
+                }
+            })
+            for (let prop in holder) {
+                finalResponseArray.push({to: prop, value: holder[prop]})
             }
-        })
-        for (let prop in holder) {
-            finalResponseArray.push({to: prop, value: holder[prop]})
-        }
-        for (const user in finalResponseArray) {
-            const newElem =await userIdToName(finalResponseArray[user].to)
-            userNames.push(newElem);
-        }
+            for (const user in finalResponseArray) {
+                const newElem =await userIdToName(finalResponseArray[user].to)
+                userNames.push(newElem);
+            }
 
-        res.send({valueOwedToUser: finalResponseArray, expensesId: insideExpensesId,userNames:userNames});
-    })
+            res.send({valueOwedToUser: finalResponseArray, expensesId: insideExpensesId,userNames:userNames});
+        })
+    }else{
+        Expense.find({$and:[{'eachUserExpense.from':body.userId},{groupName:body.groupName}]},async (error, expenses) => {
+            for (const expense in expenses) {
+                for (const user in expenses[expense].eachUserExpense) {
+                    if (expenses[expense].eachUserExpense[user].from === body.userId) {
+                        thisUserOwes.push({
+                            to: expenses[expense].to,
+                            value: expenses[expense].eachUserExpense[user].value,
+                            userName:''
+                        })
+                        insideExpensesId.push(expenses[expense].eachUserExpense[user]._id)
+                    }
+                }
+            }
+            thisUserOwes.forEach((d) => {
+                if (holder.hasOwnProperty(d.to)) {
+                    holder[d.to] = holder[d.to] + d.value
+                } else {
+                    holder[d.to] = d.value
+                }
+            })
+            for (let prop in holder) {
+                finalResponseArray.push({to: prop, value: holder[prop]})
+            }
+            for (const user in finalResponseArray) {
+                const newElem =await userIdToName(finalResponseArray[user].to)
+                userNames.push(newElem);
+            }
+
+            res.send({valueOwedToUser: finalResponseArray, expensesId: insideExpensesId,userNames:userNames});
+        })
+    }
+
 })
 
 app.post('/settle-up',async (req:express.Request,res:express.Response)=>{
     const body = req.body;
     const expensesToDeleteId = [];
-    Expense.find({'eachUserExpense.from':body.userId},async (error, expenses) => {
-            for (const expense in expenses) {
-                for (const user in expenses[expense].eachUserExpense) {
-                    if (expenses[expense].eachUserExpense[user].from === body.userId) {
-                        expenses[expense].eachUserExpense.splice(Number(user), 1);
-                        if (expenses[expense].eachUserExpense.length === 0) {
-                            expensesToDeleteId.push(expenses[expense]._id.toString())
-                        } else {
-                            await expenses[expense].save();
+    let amountUserAfterFork = 0;
+    //without group
+    if(body.groupName === 'Dashboard' || body.groupName === 'All Expenses' || body.groupName === 'Recent Activities'){
+        Expense.find({'eachUserExpense.from':body.userId},async (error, expenses) => {
+                for (const expense in expenses) {
+                    for (const user in expenses[expense].eachUserExpense) {
+                        if (expenses[expense].eachUserExpense[user].from === body.userId) {
+                            expenses[expense].eachUserExpense.splice(Number(user), 1);
+                            if (expenses[expense].eachUserExpense.length === 0) {
+                                expensesToDeleteId.push(expenses[expense]._id.toString())
+                            } else {
+                                await expenses[expense].save();
+                            }
                         }
                     }
                 }
+                for (const expense of expensesToDeleteId) {
+                    await Expense.findOneAndDelete({_id: expense});
+                }
             }
-            for (const expense of expensesToDeleteId) {
-                await Expense.findOneAndDelete({_id: expense});
-            }
-        }
-    )
-    User.findOne({_id:body.userId},async (error, user) => {
-        user.outcome = 0;
-        await user.save();
-    })
-    for(const userIndex in body.valueOwedToUser){
-        User.findOne({_id:body.valueOwedToUser[userIndex].to},async (error, user) => {
-            user.income = user.income - body.valueOwedToUser[userIndex].value;
+        )
+        User.findOne({_id:body.userId},async (error, user) => {
+            user.outcome = 0;
             await user.save();
-            res.send({settleUpFinished:true});
         })
+        for(const userIndex in body.valueOwedToUser){
+            User.findOne({_id:body.valueOwedToUser[userIndex].to},async (error, user) => {
+                user.income = user.income - body.valueOwedToUser[userIndex].value;
+                await user.save();
+                res.send({settleUpFinished:true});
+            })
+        }
+    }else{ //with group
+        Expense.find({$and:[{'eachUserExpense.from':body.userId},{groupName:body.groupName}]},async (error, expenses) => {
+            for (const expense in expenses) {
+                    for (const user in expenses[expense].eachUserExpense) {
+                        if (expenses[expense].eachUserExpense[user].from === body.userId) {
+                            amountUserAfterFork = amountUserAfterFork + expenses[expense].eachUserExpense[user].value;
+                            expenses[expense].eachUserExpense.splice(Number(user), 1);
+                            if (expenses[expense].eachUserExpense.length === 0) {
+                                expensesToDeleteId.push(expenses[expense]._id.toString())
+                            } else {
+                                await expenses[expense].save();
+                            }
+                        }
+                    }
+                }
+                for (const expense of expensesToDeleteId) {
+                    await Expense.findOneAndDelete({_id: expense});
+                }
+            }
+        )
+        User.findOne({_id:body.userId},async (error, user) => {
+            user.outcome = user.outcome - amountUserAfterFork;
+            await user.save();
+        })
+        for(const userIndex in body.valueOwedToUser){
+            User.findOne({_id:body.valueOwedToUser[userIndex].to},async (error, user) => {
+                user.income = user.income - body.valueOwedToUser[userIndex].value;
+                await user.save();
+                res.send({settleUpFinished:true});
+            })
+        }
     }
+
+
+
 })
 
 app.post('/expenses-info-to-user',async (req:express.Request,res:express.Response)=>{
