@@ -277,14 +277,31 @@ app.post('/friends-list',async (req:express.Request,res:express.Response)=>{
 app.post('/friend-check',async (req:express.Request,res:express.Response)=> {
     const body=req.body;
     const friendId = await usersSearch(body.friends);
-    Friends.findOne({user:body.user},async (error,user)=>{
-        if(user.friends.includes(friendId)){
-            res.send({correctUser:true})
-        }else
-        {
-            res.send({correctUser:false})
-        }
-    })
+    if(body.groupName !== 'Dashboard' && body.groupName !== 'All Expenses' && body.groupName !== 'Recent Activities' ){
+        Group.findOne({$and:[{name:body.groupName},{usersEmails:friendId}]},async(error,user)=>{
+            if(user){
+                Friends.findOne({user:body.user},async (error,user)=>{
+                    if(user.friends.includes(friendId)){
+                        res.send({correctUser:true})
+                    }else
+                    {
+                        res.send({correctUser:false})
+                    }
+                })
+            }else{
+                res.send({correctUser:false});
+            }
+        });
+    }else{
+        Friends.findOne({user:body.user},async (error,user)=>{
+            if(user.friends.includes(friendId)){
+                res.send({correctUser:true})
+            }else
+            {
+                res.send({correctUser:false})
+            }
+        })
+    }
 })
 
 app.post('/settle-up-info',async (req:express.Request,res:express.Response)=> {
