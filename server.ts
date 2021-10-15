@@ -262,7 +262,7 @@ app.post('/friends-list',async (req:express.Request,res:express.Response)=>{
             await usersIdToNameSort(user.friends);
             res.send({friends:userNames});
         }else{
-            res.status(200);
+            res.send({friends:[]});
         }
     })
 
@@ -430,19 +430,19 @@ app.post('/settle-up',async (req:express.Request,res:express.Response)=>{
                 for (const expense of expensesToDeleteId) {
                     await Expense.findOneAndDelete({_id: expense});
                 }
+            User.findOne({_id:body.userId},async (error, user) => {
+                user.outcome = user.outcome - amountUserAfterFork;
+                await user.save();
+            })
+            for(const userIndex in body.valueOwedToUser){
+                User.findOne({_id:body.valueOwedToUser[userIndex].to},async (error, user) => {
+                    user.income = user.income - body.valueOwedToUser[userIndex].value;
+                    await user.save();
+                    res.send({settleUpFinished:true});
+                })
+            }
             }
         )
-        User.findOne({_id:body.userId},async (error, user) => {
-            user.outcome = user.outcome - amountUserAfterFork;
-            await user.save();
-        })
-        for(const userIndex in body.valueOwedToUser){
-            User.findOne({_id:body.valueOwedToUser[userIndex].to},async (error, user) => {
-                user.income = user.income - body.valueOwedToUser[userIndex].value;
-                await user.save();
-                res.send({settleUpFinished:true});
-            })
-        }
     }
 
 
@@ -477,7 +477,6 @@ app.post('/expenses-info-to-user',async (req:express.Request,res:express.Respons
                 expensesUserIsOwed.push({description,amount});
             }
             expensesUserIsOwed.splice(0,1);
-            console.log(expensesUserIsOwed.length);
             expensesUserIsOwed.splice(3,expensesUserIsOwed.length-1);
             res.send({expensesArray:expensesUserIsOwed});
         })
