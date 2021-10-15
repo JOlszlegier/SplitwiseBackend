@@ -452,7 +452,7 @@ app.post('/settle-up',async (req:express.Request,res:express.Response)=>{
 app.post('/expenses-info-to-user',async (req:express.Request,res:express.Response)=>{
     const body= req.body;
     const expensesUserIsOwed:[{description:String,amount:number}] = [{description:'',amount:0}];
-    if(body.groupName === 'Dashboard' || body.groupName === 'Recent Activities' || body.groupName === 'All Expenses'){
+    if(body.groupName === 'Dashboard' || body.groupName === 'All Expenses'){
         Expense.find({to:body.userId},async(error,expenses)=>{
             for(let expense in expenses){
                 let description = expenses[expense].description;
@@ -463,6 +463,22 @@ app.post('/expenses-info-to-user',async (req:express.Request,res:express.Respons
                 expensesUserIsOwed.push({description,amount});
             }
             expensesUserIsOwed.splice(0,1);
+            res.send({expensesArray:expensesUserIsOwed});
+        })
+
+    }else if(body.groupName === 'Recent Activities'){
+        Expense.find({to:body.userId},async(error,expenses)=>{
+            for(let expense in expenses){
+                let description = expenses[expense].description;
+                let amount = 0;
+                for(let user in expenses[expense].eachUserExpense){
+                    amount= amount + expenses[expense].eachUserExpense[user].value;
+                }
+                expensesUserIsOwed.push({description,amount});
+            }
+            expensesUserIsOwed.splice(0,1);
+            console.log(expensesUserIsOwed.length);
+            expensesUserIsOwed.splice(3,expensesUserIsOwed.length-1);
             res.send({expensesArray:expensesUserIsOwed});
         })
     }else{
@@ -484,7 +500,7 @@ app.post('/expenses-info-to-user',async (req:express.Request,res:express.Respons
 app.post('/expenses-info-from-user',async (req:express.Request,res:express.Response)=>{
     const body= req.body;
     const expensesUserIsOwing:[{description:String,amount:number}] = [{description:'',amount:0}];
-    if(body.groupName === 'Dashboard' || body.groupName === 'Recent Activities' || body.groupName === 'All Expenses'){
+    if(body.groupName === 'Dashboard'  || body.groupName === 'All Expenses'){
         Expense.find({'eachUserExpense.from':body.userId},async(error,expenses)=>{
             for (const expense in expenses) {
                 for (const user in expenses[expense].eachUserExpense) {
@@ -496,7 +512,21 @@ app.post('/expenses-info-from-user',async (req:express.Request,res:express.Respo
             expensesUserIsOwing.splice(0,1);
             res.send({expensesArray:expensesUserIsOwing});
         })
-    }else{
+    }else if(body.groupName === 'Recent Activities'){
+        Expense.find({'eachUserExpense.from':body.userId},async(error,expenses)=>{
+            for (const expense in expenses) {
+                for (const user in expenses[expense].eachUserExpense) {
+                    if (expenses[expense].eachUserExpense[user].from === body.userId) {
+                        expensesUserIsOwing.push({description:expenses[expense].description,amount:expenses[expense].eachUserExpense[user].value})
+                    }
+                }
+            }
+            expensesUserIsOwing.splice(0,1);
+            expensesUserIsOwing.splice(3,expensesUserIsOwing.length-3);
+            res.send({expensesArray:expensesUserIsOwing});
+        })
+    }
+    else{
         Expense.find({$and:[{'eachUserExpense.from':body.userId},{groupName:body.groupName}]},async(error,expenses)=>{
             for (const expense in expenses) {
                 for (const user in expenses[expense].eachUserExpense) {
