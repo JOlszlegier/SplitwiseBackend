@@ -112,8 +112,8 @@ function userIdToName(userId){
 app.post('/add-group',async (req:express.Request,res:express.Response) => {
     const body = req.body;
     let userID = [];
-
     async function usersSort(usersBodyEmail){
+
         for(const userEmail of usersBodyEmail){
             const newElem = await usersSearch(userEmail);
             userID.push(newElem)
@@ -122,7 +122,6 @@ app.post('/add-group',async (req:express.Request,res:express.Response) => {
         await newGroup.save();
         res.send({newGroup});
     }
-
     await usersSort(body.usersEmails);
 })
 
