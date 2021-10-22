@@ -25,7 +25,7 @@ app.post("/create-user",async (req:express.Request,res:express.Response)=>{
     let registerSuccess = false;
      User.findOne({email:body.email},async (error,user)=>{
             if(user){
-                res.status(401).send(registerSuccess).message(`email already taken!`);
+                res.send(registerSuccess);
             }else{
                 req.body.password = await bcrypt.hash(body.password,10);
                 const myUser = new User(body);
@@ -42,21 +42,26 @@ app.post("/create-user",async (req:express.Request,res:express.Response)=>{
 app.post('/login',async (req:express.Request,res:express.Response) => {
     const body = req.body;
     let currentDate = new Date();
+    let passwordCorrect = false;
     currentDate.setHours(currentDate.getHours() + 1)
     User.findOne({email:body.email},async (error,user)=>{
         if(error){
             res.status(401).send(`Error`);
         }else{
-            const passwordCorrect = await bcrypt.compare(body.password,user.password)
-            if(!user || !passwordCorrect){
-                res.send(passwordCorrect);
+            if(!user){
+                res.send(passwordCorrect)
             }else{
-                const payload = { subject: user._id };
-                const userId = user._id;
-                const userName = user.email;
-                const token = jwt.sign(payload, ACCESS_TOKEN_SECRET);
-                const expirationDate = currentDate.getTime().toString();
-                res.status(200).send({token,passwordCorrect,expirationDate,userId,userName});
+                passwordCorrect = await bcrypt.compare(body.password,user.password)
+                if(!passwordCorrect){
+                    res.send(passwordCorrect);
+                }else{
+                    const payload = { subject: user._id };
+                    const userId = user._id;
+                    const userName = user.email;
+                    const token = jwt.sign(payload, ACCESS_TOKEN_SECRET);
+                    const expirationDate = currentDate.getTime().toString();
+                    res.status(200).send({token,passwordCorrect,expirationDate,userId,userName});
+                }
             }
         }
 
@@ -221,12 +226,12 @@ app.post('/add-friend',async (req:express.Request,res:express.Response)=>{
                     if (user) {
                         if(user.friends.includes(friendId)){
                             await usersIdToNameSort(user.friends)
-                            res.send({userAlreadyOnTheList:true,friends:friendsList});
+                            res.send({userAlreadyOnTheList:true,friends:friendsList,errorMessage:'This user is already in your friends group!'});
                         }else{
                             user.friends.push(friendId);
                             await user.save();
                             await usersIdToNameSort(user.friends)
-                            res.send({friends:friendsList});
+                            res.send({friends:friendsList,successMessage:"Friend added!"});
                         }
                     } else {
                         const newFriend = new Friends(body);
@@ -234,7 +239,7 @@ app.post('/add-friend',async (req:express.Request,res:express.Response)=>{
                         newFriend.user = body.user;
                         await newFriend.save();
                         await usersIdToNameSort(newFriend.friends)
-                        res.send({friends:friendsList});
+                        res.send({friends:friendsList,successMessage:"Friend added!"});
                     }
                 }
             }
