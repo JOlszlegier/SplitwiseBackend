@@ -214,11 +214,11 @@ app.post('/add-friend',async (req:express.Request,res:express.Response)=>{
                 if(friendId === body.user){
                     if(user.friends){
                         await usersIdToNameSort(user.friends)
-                        res.send({errorMessage:`Sadly,you can't be a friend with yourself :(`,
+                        res.send({errorMessage:`Sadly, you can't be a friend with yourself :(`,
                             friends:friendsList})
                     }else{
                         await usersIdToNameSort(body.friends)
-                        res.send({errorMessage:`Sadly,you can't be a friend with yourself :(`,
+                        res.send({errorMessage:`Sadly, you can't be a friend with yourself :(`,
                             friends:friendsList})
                     }
 
