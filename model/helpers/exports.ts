@@ -19,3 +19,44 @@ export function userIdToName(userId){
         })
     })
 }
+
+export function updateBalancePlus(userId:string,amount:number){
+    return new Promise(resolve=>{
+        User.findOne({_id:userId},(error,user)=>{
+            if(user.income!=0){
+                user.income=user.income+amount;
+            }else{
+                user.income=amount
+            }
+            resolve(user.save());
+        })
+    })
+}
+
+export function  updateBalanceMinus(userId:string,amount:number){
+    return new Promise(resolve=>{
+        User.findOne({_id:userId},(error,user)=>{
+            if(user.outcome!=0){
+                user.outcome=user.outcome+amount;
+            }else{
+                user.outcome=amount
+            }
+            resolve(user.save());
+        })
+    })
+}
+
+export function usersSearchById(userId){
+    return new Promise(resolve=>{
+        User.findOne({_id:userId},async (error,user)=>{
+            resolve(user.name);
+        })
+    })
+}
+
+export async function usersInGroup(usersId:string,usersNames){
+    for(const userId of usersId){
+        const newElem = await usersSearchById(userId);
+        usersNames.push(newElem);
+    }
+}

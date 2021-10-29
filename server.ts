@@ -3,7 +3,7 @@ import * as mongoose from 'mongoose';
 import * as cors from 'cors'
 import * as bcrypt from 'bcrypt';
 import * as jwt from 'jsonwebtoken';
-import {usersSearch,userIdToName} from "./model/helpers/exports";
+import {usersSearch,userIdToName,updateBalancePlus,updateBalanceMinus,usersInGroup} from "./model/helpers/exports";
 
 require('dotenv').config();
 
@@ -13,7 +13,6 @@ const Expense = require("./model/expense");
 const Friends = require("./model/friends");
 const app = express();
 const ACCESS_TOKEN_SECRET ='7b32dcf047c86f0c6aab76639f9c99f980877a6896f5e62a9d997f6d898ffa0f0a423ac9f6b12db31d89b6e51448107d93ff95ff76011f07bf274302c86b85b2'
-
 
 app.use(cors({
     origin: '*'
@@ -38,7 +37,6 @@ app.post("/create-user",async (req:express.Request,res:express.Response)=>{
             }
         })
     })
-
 
 app.post('/login',async (req:express.Request,res:express.Response) => {
     const body = req.body;
@@ -72,32 +70,12 @@ app.post('/login',async (req:express.Request,res:express.Response) => {
 app.post('/group-users',(req:express.Request,res:express.Response)=>{
     const body = req.body;
     let usersNames = [];
-
-    function usersSearchById(userId){
-        return new Promise(resolve=>{
-            User.findOne({_id:userId},async (error,user)=>{
-                resolve(user.name);
-            })
-        })
-    }
-    async function usersInGroup(usersId){
-        for(const userId of usersId){
-            const newElem = await usersSearchById(userId);
-            usersNames.push(newElem);
-        }
-    }
-
     Group.findOne({name:body.name},async(error,groups)=>{
         const usersId = groups.usersEmails;
-        await usersInGroup(usersId);
+        await usersInGroup(usersId,usersNames);
         res.send(usersNames);
     })
-
 })
-
-
-
-
 
 app.post('/add-group',async (req:express.Request,res:express.Response) => {
     const body = req.body;
@@ -157,31 +135,7 @@ app.post('/add-expense',async (req:express.Request,res:express.Response)=>{
 
 })
 
-function updateBalancePlus(userId:string,amount:number){
-    return new Promise(resolve=>{
-        User.findOne({_id:userId},(error,user)=>{
-            if(user.income!=0){
-                user.income=user.income+amount;
-            }else{
-                user.income=amount
-            }
-            resolve(user.save());
-        })
-    })
-}
 
-function  updateBalanceMinus(userId:string,amount:number){
-    return new Promise(resolve=>{
-        User.findOne({_id:userId},(error,user)=>{
-            if(user.outcome!=0){
-                user.outcome=user.outcome+amount;
-            }else{
-                user.outcome=amount
-            }
-            resolve(user.save());
-        })
-    })
-}
 
 app.post('/balance-check',async (req:express.Request,res:express.Response)=>{
     const body =req.body;
@@ -530,6 +484,7 @@ app.post('/expenses-info-from-user',async (req:express.Request,res:express.Respo
 })
 
 
+
 mongoose.connect("mongodb+srv://newuser:admin@cluster0.hiiuc.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"
     ,()=>{
         console.log('Connected to database')
@@ -539,25 +494,3 @@ app.listen(3000,()=>{
     console.log(`Listening on 3000`);
 })
 
-
-
-
-//Token verification ,might use in the future
-// app.get('/token-verification',verifyToken,(req,res)=>{
-//     res.status(200).send({tokenVerified:true});
-// })
-
-// function verifyToken(req,res,next){
-//     if(!req.headers.authorization){
-//         return res.status(401).send(`No token`)
-//     }
-//     let token = req.headers.authorization.split(' ')[1];
-//     if(token === 'null'){
-//         return res.status(401).send(`Token empty`)
-//     }
-//     let payload = jwt.verify(token,ACCESS_TOKEN_SECRET);
-//     if(!payload){
-//         return res.status(401).send(`Tokens do not match!`)
-//     }
-//     next();
-// }
