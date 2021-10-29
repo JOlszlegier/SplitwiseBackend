@@ -7,7 +7,7 @@ import {
     usersSearch,
     userIdToName,
     usersInGroup,
-    usersSort
+    usersSort, usersIdToNameSort
 } from "./model/helpers/user-functions";
 import {usersEmailsToId} from "./model/helpers/expense-functions";
 
@@ -114,7 +114,6 @@ app.post('/add-expense',async (req:express.Request,res:express.Response)=>{
 })
 
 
-
 app.post('/balance-check',async (req:express.Request,res:express.Response)=>{
     const body =req.body;
     User.findOne({_id:body.userId},(error,user)=>{
@@ -130,24 +129,23 @@ app.post('/add-friend',async (req:express.Request,res:express.Response)=>{
             if(friendId!=0){
                 if(friendId === body.user){
                     if(user.friends){
-                        await usersIdToNameSort(user.friends)
+                        await usersIdToNameSort(user.friends,friendsList)
                         res.send({errorMessage:`Sadly, you can't be a friend with yourself :(`,
                             friends:friendsList})
                     }else{
-                        await usersIdToNameSort(body.friends)
+                        await usersIdToNameSort(body.friends,friendsList)
                         res.send({errorMessage:`Sadly, you can't be a friend with yourself :(`,
                             friends:friendsList})
                     }
-
                 }else{
                     if (user) {
                         if(user.friends.includes(friendId)){
-                            await usersIdToNameSort(user.friends)
+                            await usersIdToNameSort(user.friends,friendsList)
                             res.send({userAlreadyOnTheList:true,friends:friendsList,errorMessage:'This user is already in your friends group!'});
                         }else{
                             user.friends.push(friendId);
                             await user.save();
-                            await usersIdToNameSort(user.friends)
+                            await usersIdToNameSort(user.friends,friendsList)
                             res.send({friends:friendsList,successMessage:"Friend added!"});
                         }
                     } else {
@@ -155,24 +153,19 @@ app.post('/add-friend',async (req:express.Request,res:express.Response)=>{
                         newFriend.friends = await usersSearch(body.friends)
                         newFriend.user = body.user;
                         await newFriend.save();
-                        await usersIdToNameSort(newFriend.friends)
+                        await usersIdToNameSort(newFriend.friends,friendsList)
                         res.send({friends:friendsList,successMessage:"Friend added!"});
                     }
                 }
             }
             else{
-                await usersIdToNameSort(user.friends);
+                await usersIdToNameSort(user.friends,friendsList);
                 res.send({friends:friendsList,errorMessage:`This user does not exist!`})
             }
         })
 
 
-    async function usersIdToNameSort(usersId) {
-        for (const friend of usersId) {
-            const newElement = await userIdToName(friend)
-            friendsList.push(newElement);
-        }
-    }
+
 })
 
 app.post('/friends-list',async (req:express.Request,res:express.Response)=>{
@@ -180,19 +173,12 @@ app.post('/friends-list',async (req:express.Request,res:express.Response)=>{
     let userNames = [];
     Friends.findOne({user:body.user},async (error,user)=>{
         if(user){
-            await usersIdToNameSort(user.friends);
+            await usersIdToNameSort(user.friends,userNames);
             res.send({friends:userNames});
         }else{
             res.send({friends:[]});
         }
     })
-
-    async function usersIdToNameSort(usersId) {
-        for (const friend of usersId) {
-            const newElement = await userIdToName(friend)
-            userNames.push(newElement);
-        }
-    }
 })
 
 app.post('/friend-check',async (req:express.Request,res:express.Response)=> {

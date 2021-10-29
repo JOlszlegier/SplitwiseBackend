@@ -72,3 +72,10 @@ export async function usersSort(usersBodyEmail,userID,req:express.Request,res:ex
     await newGroup.save();
     res.send({newGroup});
 }
+
+export async function usersIdToNameSort(usersId:string[],userNames) {
+    for (const friend of usersId) {
+        const newElement = await userIdToName(friend)
+        userNames.push(newElement);
+    }
+}
