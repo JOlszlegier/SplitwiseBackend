@@ -11,9 +11,11 @@ import {
 } from "./model/helpers/user-functions";
 import {
     usersEmailsToId,
-    expensesInfoNormalMode,
-    expensesInfoRecent,
-    expensesInfoGroup
+    expensesToUserInfoGroup,
+    expensesToUserInfoRecent,
+    expensesToUserInfoNormalMode,
+    expensesFromUserInfoNormalMode,
+    expensesFromUserRecentMode, expensesFromUserGroupMode
 } from "./model/helpers/expense-functions";
 
 require('dotenv').config();
@@ -364,11 +366,11 @@ app.post('/expenses-info-to-user',async (req:express.Request,res:express.Respons
     const body= req.body;
     const expensesUserIsOwed:[{description:String,amount:number}] = [{description:'',amount:0}];
     if(body.groupName === 'Dashboard' || body.groupName === 'All Expenses'){
-        expensesInfoNormalMode(req,res,expensesUserIsOwed);
+        expensesToUserInfoNormalMode(req,res,expensesUserIsOwed);
     }else if(body.groupName === 'Recent Activities'){
-        expensesInfoRecent(req,res,expensesUserIsOwed);
+        expensesToUserInfoRecent(req,res,expensesUserIsOwed);
     }else{
-        expensesInfoGroup(req,res,expensesUserIsOwed)
+        expensesToUserInfoGroup(req,res,expensesUserIsOwed)
     }
 })
 
@@ -376,43 +378,12 @@ app.post('/expenses-info-from-user',async (req:express.Request,res:express.Respo
     const body= req.body;
     const expensesUserIsOwing:[{description:String,amount:number}] = [{description:'',amount:0}];
     if(body.groupName === 'Dashboard'  || body.groupName === 'All Expenses'){
-        Expense.find({'eachUserExpense.from':body.userId},async(error,expenses)=>{
-            for (const expense in expenses) {
-                for (const user in expenses[expense].eachUserExpense) {
-                    if (expenses[expense].eachUserExpense[user].from === body.userId) {
-                        expensesUserIsOwing.push({description:expenses[expense].description,amount:expenses[expense].eachUserExpense[user].value})
-                    }
-                }
-            }
-            expensesUserIsOwing.splice(0,1);
-            res.send({expensesArray:expensesUserIsOwing});
-        })
+        expensesFromUserInfoNormalMode(req,res,expensesUserIsOwing);
     }else if(body.groupName === 'Recent Activities'){
-        Expense.find({'eachUserExpense.from':body.userId},async(error,expenses)=>{
-            for (const expense in expenses) {
-                for (const user in expenses[expense].eachUserExpense) {
-                    if (expenses[expense].eachUserExpense[user].from === body.userId) {
-                        expensesUserIsOwing.push({description:expenses[expense].description,amount:expenses[expense].eachUserExpense[user].value})
-                    }
-                }
-            }
-            expensesUserIsOwing.splice(0,1);
-            expensesUserIsOwing.splice(3,expensesUserIsOwing.length-3);
-            res.send({expensesArray:expensesUserIsOwing});
-        })
+        expensesFromUserRecentMode(req,res,expensesUserIsOwing);
     }
     else{
-        Expense.find({$and:[{'eachUserExpense.from':body.userId},{groupName:body.groupName}]},async(error,expenses)=>{
-            for (const expense in expenses) {
-                for (const user in expenses[expense].eachUserExpense) {
-                    if (expenses[expense].eachUserExpense[user].from === body.userId) {
-                        expensesUserIsOwing.push({description:expenses[expense].description,amount:expenses[expense].eachUserExpense[user].value})
-                    }
-                }
-            }
-            expensesUserIsOwing.splice(0,1);
-            res.send({expensesArray:expensesUserIsOwing});
-        })
+        expensesFromUserGroupMode(req,res,expensesUserIsOwing);
     }
 })
 
