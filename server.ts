@@ -3,6 +3,7 @@ import * as mongoose from 'mongoose';
 import * as cors from 'cors'
 import * as bcrypt from 'bcrypt';
 import * as jwt from 'jsonwebtoken';
+import {usersSearch,userIdToName} from "./model/helpers/exports";
 
 require('dotenv').config();
 
@@ -94,25 +95,9 @@ app.post('/group-users',(req:express.Request,res:express.Response)=>{
 
 })
 
-function usersSearch(usersEmail){
-    return new Promise (resolve=>{
-        User.findOne({email:usersEmail},async (error,user)=> {
-            if(user){
-                resolve(user._id.toString())
-            }else{
-                resolve(0);
-            }
-        })
-    })
-}
 
-function userIdToName(userId){
-    return new Promise (resolve=>{
-        User.findOne({_id:userId},async (error,user)=> {
-            resolve(user.name.toString())
-        })
-    })
-}
+
+
 
 app.post('/add-group',async (req:express.Request,res:express.Response) => {
     const body = req.body;
