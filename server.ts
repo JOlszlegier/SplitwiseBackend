@@ -6,11 +6,10 @@ import * as jwt from 'jsonwebtoken';
 import {
     usersSearch,
     userIdToName,
-    updateBalancePlus,
-    updateBalanceMinus,
     usersInGroup,
     usersSort
-} from "./model/helpers/exports";
+} from "./model/helpers/user-functions";
+import {usersEmailsToId} from "./model/helpers/expense-functions";
 
 require('dotenv').config();
 
@@ -87,7 +86,7 @@ app.post('/group-users',(req:express.Request,res:express.Response)=>{
 app.post('/add-group',async (req:express.Request,res:express.Response) => {
     const body = req.body;
     let userID = [];
-    await usersSort(body.usersEmails,userID,body,res);
+    await usersSort(body.usersEmails,userID,req,res);
 })
 
 app.post('/group-check',(req:express.Request,res:express.Response)=>{
@@ -107,29 +106,11 @@ app.post('/add-expense',async (req:express.Request,res:express.Response)=>{
     if(body.groupName === 'Dashboard' || body.groupName === 'Recent Activities' || body.groupName === 'All Expenses'){
         body.groupName = '';
     }
-    async function usersEmailsToId(usersEmails){
-        for(const userEmail of usersEmails){
-            const newElement = await usersSearch(userEmail)
-            usersId.push(newElement);
-        }
-        for(const user in usersId){
-            body.eachUserExpense[user].from = usersId[user];
-            await updateBalanceMinus(body.eachUserExpense[user].from,body.eachUserExpense[user].value)
-            totalAmount=totalAmount+body.eachUserExpense[user].value;
-        }
-        body.to = await usersSearch(body.to);
-        await updateBalancePlus(body.to,totalAmount);
-        const newExpense = new Expense(body);
-        newExpense.date = currentDate.getTime().toString();
-        res.send({expenseAdded:true})
-        await newExpense.save();
-    }
     let userArray = [];
     for(const user of body.eachUserExpense){
         userArray.push(user.from)
     }
-    await usersEmailsToId(userArray);
-
+    await usersEmailsToId(userArray,usersId,totalAmount,currentDate,req,res);
 })
 
 

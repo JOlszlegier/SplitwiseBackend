@@ -1,5 +1,6 @@
 const Group = require("../group.ts");
 const User  = require("../user.ts");
+import * as express from 'express';
 
 export function usersSearch(usersEmail){
     return new Promise (resolve=>{
@@ -62,12 +63,12 @@ export async function usersInGroup(usersId:string,usersNames){
     }
 }
 
-export async function usersSort(usersBodyEmail,userID,body,res){
+export async function usersSort(usersBodyEmail,userID,req:express.Request,res:express.Response){
     for(const userEmail of usersBodyEmail){
         const newElem = await usersSearch(userEmail);
         userID.push(newElem)
     }
-    const newGroup =  new Group({name:body.name,usersEmails:userID});
+    const newGroup =  new Group({name:req.body.name,usersEmails:userID});
     await newGroup.save();
     res.send({newGroup});
 }
