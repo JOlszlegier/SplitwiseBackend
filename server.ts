@@ -14,7 +14,8 @@ import {
     expensesToUserInfoRecent,
     expensesToUserInfoNormalMode,
     expensesFromUserInfoNormalMode,
-    expensesFromUserRecentMode, expensesFromUserGroupMode
+    expensesFromUserRecentMode,
+    expensesFromUserGroupMode
 } from "./model/helpers/expense-functions";
 import {
     settleUpInfoGroupMode,
@@ -22,6 +23,7 @@ import {
     settleUpInGroup,
     settleUpNormalMode
 } from "./model/helpers/settle-up-functions";
+import {friendCheckGroupMode, friendCheckNormalMode} from "./model/helpers/friend-functions";
 
 require('dotenv').config();
 
@@ -195,29 +197,9 @@ app.post('/friend-check',async (req:express.Request,res:express.Response)=> {
     const body=req.body;
     const friendId = await usersSearch(body.friends);
     if(body.groupName !== 'Dashboard' && body.groupName !== 'All Expenses' && body.groupName !== 'Recent Activities' ){
-        Group.findOne({$and:[{name:body.groupName},{usersEmails:friendId}]},async(error,user)=>{
-            if(user){
-                Friends.findOne({user:body.user},async (error,user)=>{
-                    if(user.friends.includes(friendId)){
-                        res.send({correctUser:true})
-                    }else
-                    {
-                        res.send({correctUser:false})
-                    }
-                })
-            }else{
-                res.send({correctUser:false});
-            }
-        });
+        friendCheckGroupMode(req,res,friendId);
     }else{
-        Friends.findOne({user:body.user},async (error,user)=>{
-            if(user.friends.includes(friendId)){
-                res.send({correctUser:true})
-            }else
-            {
-                res.send({correctUser:false})
-            }
-        })
+        friendCheckNormalMode(req,res,friendId);
     }
 })
 
