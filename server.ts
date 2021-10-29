@@ -23,7 +23,7 @@ import {
     settleUpInGroup,
     settleUpNormalMode
 } from "./model/helpers/settle-up-functions";
-import {friendCheckGroupMode, friendCheckNormalMode} from "./model/helpers/friend-functions";
+import {addFriend, friendCheckGroupMode, friendCheckNormalMode} from "./model/helpers/friend-functions";
 
 require('dotenv').config();
 
@@ -137,47 +137,7 @@ app.post('/add-friend',async (req:express.Request,res:express.Response)=>{
     const body = req.body;
     const friendId = await usersSearch(body.friends);
     const friendsList = [];
-        Friends.findOne({user:body.user},async (error, user) => {
-            if(friendId!=0){
-                if(friendId === body.user){
-                    if(user.friends){
-                        await usersIdToNameSort(user.friends,friendsList)
-                        res.send({errorMessage:`Sadly, you can't be a friend with yourself :(`,
-                            friends:friendsList})
-                    }else{
-                        await usersIdToNameSort(body.friends,friendsList)
-                        res.send({errorMessage:`Sadly, you can't be a friend with yourself :(`,
-                            friends:friendsList})
-                    }
-                }else{
-                    if (user) {
-                        if(user.friends.includes(friendId)){
-                            await usersIdToNameSort(user.friends,friendsList)
-                            res.send({userAlreadyOnTheList:true,friends:friendsList,errorMessage:'This user is already in your friends group!'});
-                        }else{
-                            user.friends.push(friendId);
-                            await user.save();
-                            await usersIdToNameSort(user.friends,friendsList)
-                            res.send({friends:friendsList,successMessage:"Friend added!"});
-                        }
-                    } else {
-                        const newFriend = new Friends(body);
-                        newFriend.friends = await usersSearch(body.friends)
-                        newFriend.user = body.user;
-                        await newFriend.save();
-                        await usersIdToNameSort(newFriend.friends,friendsList)
-                        res.send({friends:friendsList,successMessage:"Friend added!"});
-                    }
-                }
-            }
-            else{
-                await usersIdToNameSort(user.friends,friendsList);
-                res.send({friends:friendsList,errorMessage:`This user does not exist!`})
-            }
-        })
-
-
-
+    addFriend(req,res,friendId,friendsList);
 })
 
 app.post('/friends-list',async (req:express.Request,res:express.Response)=>{
