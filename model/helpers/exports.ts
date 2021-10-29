@@ -1,3 +1,4 @@
+const Group = require("../group.ts");
 const User  = require("../user.ts");
 
 export function usersSearch(usersEmail){
@@ -59,4 +60,14 @@ export async function usersInGroup(usersId:string,usersNames){
         const newElem = await usersSearchById(userId);
         usersNames.push(newElem);
     }
+}
+
+export async function usersSort(usersBodyEmail,userID,body,res){
+    for(const userEmail of usersBodyEmail){
+        const newElem = await usersSearch(userEmail);
+        userID.push(newElem)
+    }
+    const newGroup =  new Group({name:body.name,usersEmails:userID});
+    await newGroup.save();
+    res.send({newGroup});
 }

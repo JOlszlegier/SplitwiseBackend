@@ -3,7 +3,14 @@ import * as mongoose from 'mongoose';
 import * as cors from 'cors'
 import * as bcrypt from 'bcrypt';
 import * as jwt from 'jsonwebtoken';
-import {usersSearch,userIdToName,updateBalancePlus,updateBalanceMinus,usersInGroup} from "./model/helpers/exports";
+import {
+    usersSearch,
+    userIdToName,
+    updateBalancePlus,
+    updateBalanceMinus,
+    usersInGroup,
+    usersSort
+} from "./model/helpers/exports";
 
 require('dotenv').config();
 
@@ -80,17 +87,7 @@ app.post('/group-users',(req:express.Request,res:express.Response)=>{
 app.post('/add-group',async (req:express.Request,res:express.Response) => {
     const body = req.body;
     let userID = [];
-    async function usersSort(usersBodyEmail){
-
-        for(const userEmail of usersBodyEmail){
-            const newElem = await usersSearch(userEmail);
-            userID.push(newElem)
-        }
-        const newGroup =  new Group({name:body.name,usersEmails:userID});
-        await newGroup.save();
-        res.send({newGroup});
-    }
-    await usersSort(body.usersEmails);
+    await usersSort(body.usersEmails,userID,body,res);
 })
 
 app.post('/group-check',(req:express.Request,res:express.Response)=>{
