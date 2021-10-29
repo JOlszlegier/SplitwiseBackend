@@ -20,3 +20,39 @@ export async function usersEmailsToId(usersEmails:string[],usersId,totalAmount:n
     res.send({expenseAdded:true})
     await newExpense.save();
 }
+
+function expenseSearch(expenses,expensesUserIsOwed:[{description:String,amount:number}]){
+    for(let expense in expenses){
+        let description = expenses[expense].description;
+        let amount = 0;
+        for(let user in expenses[expense].eachUserExpense){
+            amount= amount + expenses[expense].eachUserExpense[user].value;
+        }
+        expensesUserIsOwed.push({description,amount});
+    }
+}
+
+export function expensesInfoNormalMode(req:express.Request,res:express.Response,expensesUserIsOwed:[{description:String,amount:number}]) {
+    Expense.find({to:req.body.userId},async(error,expenses)=>{
+        expenseSearch(expenses,expensesUserIsOwed)
+        expensesUserIsOwed.splice(0,1);
+        res.send({expensesArray:expensesUserIsOwed});
+    })
+}
+
+export function expensesInfoRecent(req:express.Request,res:express.Response,expensesUserIsOwed:[{description:String,amount:number}]){
+    Expense.find({to:req.body.userId},async(error,expenses)=>{
+        expenseSearch(expenses,expensesUserIsOwed)
+        expensesUserIsOwed.splice(0,1);
+        expensesUserIsOwed.splice(3,expensesUserIsOwed.length-1);
+        res.send({expensesArray:expensesUserIsOwed});
+    })
+}
+
+export function expensesInfoGroup(req:express.Request,res:express.Response,expensesUserIsOwed:[{description:String,amount:number}]){
+    Expense.find({$and:[{to:req.body.userId},{groupName:req.body.groupName}]},async(error,expenses)=>{
+        expenseSearch(expenses,expensesUserIsOwed)
+        expensesUserIsOwed.splice(0,1);
+        res.send({expensesArray:expensesUserIsOwed});
+    })
+}
