@@ -34,6 +34,8 @@ const router = express.Router();
 const app = express();
 const loginRouter = require("./model/routes/login-route.ts");
 const registerRouter = require("./model/routes/register-route.ts");
+const groupRouter = require("./model/routes/group-routes.ts");
+const friendRouter = require("./model/routes/friend-route.ts");
 const ACCESS_TOKEN_SECRET ='7b32dcf047c86f0c6aab76639f9c99f980877a6896f5e62a9d997f6d898ffa0f0a423ac9f6b12db31d89b6e51448107d93ff95ff76011f07bf274302c86b85b2'
 
 app.use(cors({
@@ -44,33 +46,11 @@ app.use(express.json());
 
 app.use("",loginRouter);
 app.use("",registerRouter);
+app.use("",groupRouter);
+app.use("",friendRouter);
 
 
 
-
-app.post('/group-users',(req:express.Request,res:express.Response)=>{
-    const body = req.body;
-    let usersNames = [];
-    Group.findOne({name:body.name},async(error,groups)=>{
-        const usersId = groups.usersEmails;
-        await usersInGroup(usersId,usersNames);
-        res.send(usersNames);
-    })
-})
-
-app.post('/add-group',async (req:express.Request,res:express.Response) => {
-    const body = req.body;
-    let userID = [];
-    await usersSort(body.usersEmails,userID,req,res);
-})
-
-app.post('/group-check',(req:express.Request,res:express.Response)=>{
-    const body = req.body;
-    Group.find({usersEmails:body.userId},async(error,groups)=>{
-        const groupsNames = groups.map((item:{name:any;})=>item.name)
-        res.send(groupsNames);
-    })
-});
 
 app.post('/add-expense',async (req:express.Request,res:express.Response)=>{
     const body=req.body;
@@ -95,35 +75,7 @@ app.post('/balance-check',async (req:express.Request,res:express.Response)=>{
     })
 })
 
-app.post('/add-friend',async (req:express.Request,res:express.Response)=>{
-    const body = req.body;
-    const friendId = await usersSearch(body.friends);
-    const friendsList = [];
-    addFriend(req,res,friendId,friendsList);
-})
 
-app.post('/friends-list',async (req:express.Request,res:express.Response)=>{
-    const body=req.body;
-    let userNames = [];
-    Friends.findOne({user:body.user},async (error,user)=>{
-        if(user){
-            await usersIdToNameSort(user.friends,userNames);
-            res.send({friends:userNames});
-        }else{
-            res.send({friends:[]});
-        }
-    })
-})
-
-app.post('/friend-check',async (req:express.Request,res:express.Response)=> {
-    const body=req.body;
-    const friendId = await usersSearch(body.friends);
-    if(body.groupName !== 'Dashboard' && body.groupName !== 'All Expenses' && body.groupName !== 'Recent Activities' ){
-        friendCheckGroupMode(req,res,friendId);
-    }else{
-        friendCheckNormalMode(req,res,friendId);
-    }
-})
 
 app.post('/settle-up-info',async (req:express.Request,res:express.Response)=> {
     const body=req.body;
