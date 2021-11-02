@@ -3,8 +3,6 @@ import {expensesFromUserGroupMode,expensesFromUserRecentMode,expensesFromUserInf
         expensesToUserInfoGroup,expensesToUserInfoRecent,expensesToUserInfoNormalMode,usersEmailsToId} from "../helpers/expense-functions";
 import {settleUpInfoGroupMode,settleUpInfoNormalMode,settleUpNormalMode,settleUpInGroup} from "../helpers/settle-up-functions";
 const User  = require("../user.ts");
-const Group = require("../group");
-const Friends = require("../friends");
 const router = express.Router();
 
 router.post('/add-expense',async (req:express.Request,res:express.Response)=>{

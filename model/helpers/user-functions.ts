@@ -1,5 +1,3 @@
-
-
 const Group = require("../group.ts");
 const User  = require("../user.ts");
 import * as express from 'express';
@@ -24,7 +22,7 @@ export function userIdToName(userId){
     })
 }
 
-export function updateBalancePlus(userId:string,amount:number){
+export function updateBalancePlus(userId:string, amount:number){
     return new Promise(resolve=>{
         User.findOne({_id:userId},(error,user)=>{
             if(user.income!=0){
@@ -37,7 +35,7 @@ export function updateBalancePlus(userId:string,amount:number){
     })
 }
 
-export function  updateBalanceMinus(userId:string,amount:number){
+export function  updateBalanceMinus(userId:string, amount:number){
     return new Promise(resolve=>{
         User.findOne({_id:userId},(error,user)=>{
             if(user.outcome!=0){
@@ -58,14 +56,14 @@ export function usersSearchById(userId){
     })
 }
 
-export async function usersInGroup(usersId:string,usersNames){
+export async function usersInGroup(usersId:string, usersNames){
     for(const userId of usersId){
         const newElem = await usersSearchById(userId);
         usersNames.push(newElem);
     }
 }
 
-export async function usersSort(usersBodyEmail,userID,req:express.Request,res:express.Response){
+export async function usersSort(usersBodyEmail, userID, req:express.Request, res:express.Response){
     for(const userEmail of usersBodyEmail){
         const newElem = await usersSearch(userEmail);
         userID.push(newElem)

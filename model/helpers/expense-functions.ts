@@ -50,7 +50,7 @@ export function expensesToUserInfoRecent(req:express.Request,res:express.Respons
 }
 
 export function expensesToUserInfoGroup(req:express.Request,res:express.Response,expensesUserIsOwed:[{description:String,amount:number}]){
-    Expense.find({$and:[{to:req.body.userId},{groupName:req.body.groupName}]},async(error,expenses)=>{
+    Expense.find({$and:[{to:req.body.userId}, {groupName:req.body.groupName}]},async(error,expenses)=>{
         expenseOwedSearch(expenses,expensesUserIsOwed)
         expensesUserIsOwed.splice(0,1);
         res.send({expensesArray:expensesUserIsOwed});
@@ -61,32 +61,32 @@ function expenseBorrowedSearch(expenses,expensesUserIsOwing:[{description:String
     for (const expense in expenses) {
         for (const user in expenses[expense].eachUserExpense) {
             if (expenses[expense].eachUserExpense[user].from === req.body.userId) {
-                expensesUserIsOwing.push({description:expenses[expense].description,amount:expenses[expense].eachUserExpense[user].value})
+                expensesUserIsOwing.push({description:expenses[expense].description, amount:expenses[expense].eachUserExpense[user].value})
             }
         }
     }
 }
 
-export function expensesFromUserInfoNormalMode(req:express.Request,res:express.Response,expensesUserIsOwing:[{description:String,amount:number}]){
+export function expensesFromUserInfoNormalMode(req:express.Request, res:express.Response, expensesUserIsOwing:[{description:String, amount:number}]){
     Expense.find({'eachUserExpense.from':req.body.userId},async(error,expenses)=>{
-        expenseBorrowedSearch(expenses,expensesUserIsOwing,req);
+        expenseBorrowedSearch(expenses, expensesUserIsOwing,req);
         expensesUserIsOwing.splice(0,1);
         res.send({expensesArray:expensesUserIsOwing});
     })
 }
 
-export function expensesFromUserRecentMode(req:express.Request,res:express.Response,expensesUserIsOwing:[{description:String,amount:number}]){
-    Expense.find({'eachUserExpense.from':req.body.userId},async(error,expenses)=>{
-        expenseBorrowedSearch(expenses,expensesUserIsOwing,req);
+export function expensesFromUserRecentMode(req:express.Request, res:express.Response, expensesUserIsOwing:[{description:String, amount:number}]){
+    Expense.find({'eachUserExpense.from':req.body.userId},async(error, expenses)=>{
+        expenseBorrowedSearch(expenses, expensesUserIsOwing,req);
         expensesUserIsOwing.splice(0,1);
-        expensesUserIsOwing.splice(3,expensesUserIsOwing.length-3);
+        expensesUserIsOwing.splice(3, expensesUserIsOwing.length-3);
         res.send({expensesArray:expensesUserIsOwing});
     })
 }
 
-export function expensesFromUserGroupMode(req:express.Request,res:express.Response,expensesUserIsOwing:[{description:String,amount:number}]){
-    Expense.find({$and:[{'eachUserExpense.from':req.body.userId},{groupName:req.body.groupName}]},async(error,expenses)=>{
-        expenseBorrowedSearch(expenses,expensesUserIsOwing,req);
+export function expensesFromUserGroupMode(req:express.Request, res:express.Response, expensesUserIsOwing:[{description:String, amount:number}]){
+    Expense.find({$and:[{'eachUserExpense.from':req.body.userId},{groupName:req.body.groupName}]},async(error, expenses)=>{
+        expenseBorrowedSearch(expenses, expensesUserIsOwing,req);
         expensesUserIsOwing.splice(0,1);
         res.send({expensesArray:expensesUserIsOwing});
     })

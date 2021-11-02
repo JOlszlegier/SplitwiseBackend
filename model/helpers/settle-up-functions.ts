@@ -3,7 +3,39 @@ const Expense = require("../expense.ts")
 import * as express from 'express';
 const User  = require("../user.ts");
 
-export function settleUpNormalMode(req:express.Request,res:express.Response,expensesToDeleteId:number[])    {
+export async function SettleUpInfo(req: express.Request, res: express.Response, holder, thisUserOwes,
+                                   finalResponseArray, userNames, insideExpensesId: string[], expenses) {
+    for (const expense in expenses) {
+        for (const user in expenses[expense].eachUserExpense) {
+            if (expenses[expense].eachUserExpense[user].from === req.body.userId) {
+                thisUserOwes.push({
+                    to: expenses[expense].to,
+                    value: expenses[expense].eachUserExpense[user].value,
+                    userName: ''
+                })
+                insideExpensesId.push(expenses[expense].eachUserExpense[user]._id)
+            }
+        }
+    }
+    thisUserOwes.forEach((d) => {
+        if (holder.hasOwnProperty(d.to)) {
+            holder[d.to] = holder[d.to] + d.value
+        } else {
+            holder[d.to] = d.value
+        }
+    })
+    for (let prop in holder) {
+        finalResponseArray.push({to: prop, value: holder[prop]})
+    }
+    for (const user in finalResponseArray) {
+        const newElem = await userIdToName(finalResponseArray[user].to)
+        userNames.push(newElem);
+    }
+
+    res.send({valueOwedToUser: finalResponseArray, expensesId: insideExpensesId, userNames: userNames});
+}
+
+export function settleUpNormalMode(req:express.Request, res:express.Response, expensesToDeleteId:number[])    {
     Expense.find({'eachUserExpense.from':req.body.userId},async (error, expenses) => {
             for (const expense in expenses) {
                 for (const user in expenses[expense].eachUserExpense) {
@@ -35,9 +67,9 @@ export function settleUpNormalMode(req:express.Request,res:express.Response,expe
     }
 }
 
-export function settleUpInGroup(req:express.Request,res:express.Response,expensesToDeleteId:number[],amountUserAfterFork:number){
+export function settleUpInGroup(req:express.Request, res:express.Response, expensesToDeleteId:number[], amountUserAfterFork:number){
     let body = req.body;
-    Expense.find({$and:[{'eachUserExpense.from':body.userId},{groupName:body.groupName}]},async (error, expenses) => {
+    Expense.find({$and:[{'eachUserExpense.from':body.userId}, {groupName:body.groupName}]},async (error, expenses) => {
             for (const expense in expenses) {
                 for (const user in expenses[expense].eachUserExpense) {
                     if (expenses[expense].eachUserExpense[user].from === body.userId) {
@@ -69,38 +101,12 @@ export function settleUpInGroup(req:express.Request,res:express.Response,expense
     )
 }
 
+
 export function settleUpInfoNormalMode(req:express.Request,res:express.Response, holder,thisUserOwes,
                                        finalResponseArray,userNames,insideExpensesId:string[]){
     let body = req.body;
     Expense.find({'eachUserExpense.from':body.userId},async (error, expenses) => {
-        for (const expense in expenses) {
-            for (const user in expenses[expense].eachUserExpense) {
-                if (expenses[expense].eachUserExpense[user].from === body.userId) {
-                    thisUserOwes.push({
-                        to: expenses[expense].to,
-                        value: expenses[expense].eachUserExpense[user].value,
-                        userName:''
-                    })
-                    insideExpensesId.push(expenses[expense].eachUserExpense[user]._id);
-                }
-            }
-        }
-        thisUserOwes.forEach((d) => {
-            if (holder.hasOwnProperty(d.to)) {
-                holder[d.to] = holder[d.to] + d.value
-            } else {
-                holder[d.to] = d.value
-            }
-        })
-        for (let prop in holder) {
-            finalResponseArray.push({to: prop, value: holder[prop]})
-        }
-        for (const user in finalResponseArray) {
-            const newElem =await userIdToName(finalResponseArray[user].to)
-            userNames.push(newElem);
-        }
-
-        res.send({valueOwedToUser: finalResponseArray, expensesId: insideExpensesId,userNames:userNames});
+        await SettleUpInfo(req, res, holder, thisUserOwes, finalResponseArray, userNames, insideExpensesId, expenses);
     })
 }
 
@@ -108,33 +114,6 @@ export function settleUpInfoGroupMode(req:express.Request,res:express.Response, 
                                       finalResponseArray,userNames,insideExpensesId:string[]){
     let body=req.body;
     Expense.find({$and:[{'eachUserExpense.from':body.userId},{groupName:body.groupName}]},async (error, expenses) => {
-        for (const expense in expenses) {
-            for (const user in expenses[expense].eachUserExpense) {
-                if (expenses[expense].eachUserExpense[user].from === body.userId) {
-                    thisUserOwes.push({
-                        to: expenses[expense].to,
-                        value: expenses[expense].eachUserExpense[user].value,
-                        userName:''
-                    })
-                    insideExpensesId.push(expenses[expense].eachUserExpense[user]._id)
-                }
-            }
-        }
-        thisUserOwes.forEach((d) => {
-            if (holder.hasOwnProperty(d.to)) {
-                holder[d.to] = holder[d.to] + d.value
-            } else {
-                holder[d.to] = d.value
-            }
-        })
-        for (let prop in holder) {
-            finalResponseArray.push({to: prop, value: holder[prop]})
-        }
-        for (const user in finalResponseArray) {
-            const newElem =await userIdToName(finalResponseArray[user].to)
-            userNames.push(newElem);
-        }
-
-        res.send({valueOwedToUser: finalResponseArray, expensesId: insideExpensesId,userNames:userNames});
+        await SettleUpInfo(req, res, holder, thisUserOwes, finalResponseArray, userNames, insideExpensesId, expenses);
     })
 }

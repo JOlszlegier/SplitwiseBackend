@@ -2,7 +2,6 @@ import * as express from 'express';
 const router = express.Router();
 import {usersIdToNameSort,usersSearch} from "../helpers/user-functions"
 import {friendCheckGroupMode,friendCheckNormalMode,addFriend} from "../helpers/friend-functions"
-const Group = require("../group");
 const Friends = require("../friends");
 
 router.post('/add-friend',async (req:express.Request,res:express.Response)=>{
