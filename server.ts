@@ -30,7 +30,10 @@ require('dotenv').config();
 const User  = require("./model/user.ts");
 const Group = require("./model/group.ts");
 const Friends = require("./model/friends");
+const router = express.Router();
 const app = express();
+const loginRouter = require("./model/routes/login-route.ts");
+const registerRouter = require("./model/routes/register-route.ts");
 const ACCESS_TOKEN_SECRET ='7b32dcf047c86f0c6aab76639f9c99f980877a6896f5e62a9d997f6d898ffa0f0a423ac9f6b12db31d89b6e51448107d93ff95ff76011f07bf274302c86b85b2'
 
 app.use(cors({
@@ -39,52 +42,11 @@ app.use(cors({
 
 app.use(express.json());
 
-app.post("/create-user",async (req:express.Request,res:express.Response)=>{
-    const body = req.body;
-    let registerSuccess = false;
-     User.findOne({email:body.email},async (error,user)=>{
-            if(user){
-                res.send(registerSuccess);
-            }else{
-                req.body.password = await bcrypt.hash(body.password,10);
-                const myUser = new User(body);
-                myUser.outcome= 0;
-                myUser.income = 0;
-                await myUser.save();
-                registerSuccess = true;
-                res.send({myUser,registerSuccess});
-            }
-        })
-    })
+app.use("",loginRouter);
+app.use("",registerRouter);
 
-app.post('/login',async (req:express.Request,res:express.Response) => {
-    const body = req.body;
-    let currentDate = new Date();
-    let passwordCorrect = false;
-    currentDate.setHours(currentDate.getHours() + 1)
-    User.findOne({email:body.email},async (error,user)=>{
-        if(error){
-            res.status(401).send(`Error`);
-        }else{
-            if(!user){
-                res.send(passwordCorrect)
-            }else{
-                passwordCorrect = await bcrypt.compare(body.password,user.password)
-                if(!passwordCorrect){
-                    res.send(passwordCorrect);
-                }else{
-                    const payload = { subject: user._id };
-                    const userId = user._id;
-                    const userName = user.email;
-                    const token = jwt.sign(payload, ACCESS_TOKEN_SECRET);
-                    const expirationDate = currentDate.getTime().toString();
-                    res.status(200).send({token,passwordCorrect,expirationDate,userId,userName});
-                }
-            }
-        }
 
-    })
-})
+
 
 app.post('/group-users',(req:express.Request,res:express.Response)=>{
     const body = req.body;
@@ -221,7 +183,7 @@ mongoose.connect("mongodb+srv://newuser:admin@cluster0.hiiuc.mongodb.net/myFirst
         console.log('Connected to database')
     })
 
-app.listen(3000,()=>{
+app.listen(process.env.PORT || 3000,()=>{
     console.log(`Listening on 3000`);
 })
 
