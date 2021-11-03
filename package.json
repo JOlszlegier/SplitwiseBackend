@@ -8,10 +8,10 @@
     "npm": "6.14.14"
   },
   "scripts": {
-    "heroku-prebuild": "npm i && ts-node server.ts",
+    "heroku-prebuild": "npm i",
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "ts-node server.ts",
-    "start": "node server.js"
+    "start": "ts-node server.js"
   },
   "author": "",
   "license": "ISC",
