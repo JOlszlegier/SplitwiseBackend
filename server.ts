@@ -29,6 +29,6 @@ mongoose.connect("mongodb+srv://newuser:admin@cluster0.hiiuc.mongodb.net/myFirst
     })
 
 app.listen(process.env.PORT || 3000,()=>{
-    console.log(`Listening on 3000`);
+    console.log(`Listening on ${process.env.PORT}`);
 })
 
