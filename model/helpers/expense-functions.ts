@@ -3,7 +3,7 @@ const Expense = require("../expense.ts")
 import * as express from 'express';
 
 
-export async function usersEmailsToId(usersEmails:string[],usersId,totalAmount:number,currentDate:Date,req:express.Request,res:express.Response){
+export async function expenseAdd(usersEmails:string[],usersId,totalAmount:number,currentDate:Date,req:express.Request,res:express.Response){
     for(const userEmail of usersEmails){
         const newElement = await usersSearch(userEmail)
         usersId.push(newElement);

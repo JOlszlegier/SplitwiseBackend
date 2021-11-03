@@ -1,6 +1,6 @@
 import * as express from 'express';
 import {expensesFromUserGroupMode,expensesFromUserRecentMode,expensesFromUserInfoNormalMode,
-        expensesToUserInfoGroup,expensesToUserInfoRecent,expensesToUserInfoNormalMode,usersEmailsToId} from "../helpers/expense-functions";
+        expensesToUserInfoGroup,expensesToUserInfoRecent,expensesToUserInfoNormalMode,expenseAdd} from "../helpers/expense-functions";
 import {settleUpInfoGroupMode,settleUpInfoNormalMode,settleUpNormalMode,settleUpInGroup} from "../helpers/settle-up-functions";
 const User  = require("../user.ts");
 const router = express.Router();
@@ -18,7 +18,7 @@ router.post('/add-expense',async (req:express.Request,res:express.Response)=>{
     for(const user of body.eachUserExpense){
         userArray.push(user.from)
     }
-    await usersEmailsToId(userArray,usersId,totalAmount,currentDate,req,res);
+    await expenseAdd(userArray,usersId,totalAmount,currentDate,req,res);
 })
 
 router.post('/balance-check',async (req:express.Request,res:express.Response)=>{
